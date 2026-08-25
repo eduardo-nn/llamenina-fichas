@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Fichas Técnicas de Vestuário — LLAMENINA. Cadastro, gestão e impressão de fichas técnicas integrado com Google Sheets.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://*.googleapis.com https://*.google.com https://script.google.com https://script.googleusercontent.com; img-src 'self' data:;">
+  <title>Fichas Técnicas — LLAMENINA</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/print.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ═══════════════ TOAST CONTAINER ═══════════════ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header class="app-header no-print">
+      <div class="app-header__brand">
+        <div class="app-header__logo">L</div>
+        <div>
+          <div class="app-header__title">LLAMENINA</div>
+          <div class="app-header__subtitle">Lista de Fichas Técnicas</div>
+        </div>
+      </div>
+
+      <div class="app-header__actions">
+        <button class="btn btn--primary" id="btn-new-ficha" data-tooltip="Nova Ficha Técnica">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Ficha
+        </button>
+        <button class="btn btn--ghost btn--icon" id="btn-config" data-tooltip="Configurações">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <main class="main-content no-print">
+
+      <!-- ══════════ VIEW: LISTA DE FICHAS ══════════ -->
+      <div id="view-list" class="view-container active">
+        <div class="toolbar">
+          <div class="toolbar__group">
+            <h1 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary);">
+              Fichas Técnicas
+              <span id="fichas-count" class="section-title__badge" style="vertical-align: middle;">0</span>
+            </h1>
+          </div>
+          <div class="toolbar__group">
+            <div class="search-bar">
+              <svg class="search-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="search-input" class="search-bar__input" placeholder="Buscar por modelo, referência ou OP...">
+            </div>
+            <button class="btn btn--ghost btn--icon" id="btn-refresh" data-tooltip="Atualizar lista">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="fichas-list-container">
+          <div class="empty-state">
+            <div class="empty-state__icon">
+              <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div class="empty-state__title">Nenhuma ficha cadastrada</div>
+            <div class="empty-state__desc">Configure o endpoint nas Configurações e clique em "Nova Ficha" para começar.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ VIEW: FORMULÁRIO ══════════ -->
+      <div id="view-form" class="view-container">
+
+        <!-- Toolbar do formulário -->
+        <div class="toolbar">
+          <div class="toolbar__group">
+            <button class="btn btn--ghost" id="btn-back-list">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Voltar
+            </button>
+          </div>
+          <div class="toolbar__group">
+            <button class="btn btn--secondary" id="btn-clear">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              Limpar
+            </button>
+            <button class="btn btn--secondary" id="btn-print">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir
+            </button>
+            <button class="btn btn--primary" id="btn-save">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Salvar
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO A: CABEÇALHO ═══ -->
+        <div class="collapsible open" data-section="cabecalho">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              A. Identificação da Peça
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="field-modelo">Modelo <span class="required">*</span></label>
+                <input type="text" id="field-modelo" class="form-input" placeholder="Modelo da peça">
+                <span class="form-error">Campo obrigatório</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-referencia">Referência (Ref) <span class="required">*</span></label>
+                <input type="text" id="field-referencia" class="form-input" placeholder="Código de referência">
+                <span class="form-error">Campo obrigatório</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-tecido">Tecido / Malha</label>
+                <input type="text" id="field-tecido" class="form-input" placeholder="Tipo de tecido ou malha">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-composicao">Composição</label>
+                <input type="text" id="field-composicao" class="form-input" placeholder="Composição do tecido">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-op">OP (Ordem de Produção)</label>
+                <input type="text" id="field-op" class="form-input" placeholder="Número da OP">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-modelista">Modelista</label>
+                <input type="text" id="field-modelista" class="form-input" placeholder="Nome do modelista">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-pilotista">Pilotista</label>
+                <input type="text" id="field-pilotista" class="form-input" placeholder="Nome do pilotista">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-cor-linha">Cor da Linha</label>
+                <input type="text" id="field-cor-linha" class="form-input" placeholder="Cor e referência da linha">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO B: FLUXO DE PRODUÇÃO ═══ -->
+        <div class="collapsible open" data-section="fluxo">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+              B. Fluxo de Produção & Acessos
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="form-grid form-grid--compact">
+              <div class="form-group">
+                <label class="form-label" for="field-corte">1. Corte</label>
+                <input type="text" id="field-corte" class="form-input" placeholder="Local ou tipo de corte">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-bordado-silk">2. Bordado / Silk</label>
+                <input type="text" id="field-bordado-silk" class="form-input" placeholder="Fornecedor ou tipo">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-confeccao">3. Confecção</label>
+                <input type="text" id="field-confeccao" class="form-input" placeholder="Oficina parceira">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-lavanderia">4. Lavanderia</label>
+                <input type="text" id="field-lavanderia" class="form-input" placeholder="Nome da lavanderia">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-lacre-lavanderia">Lacre da Lavanderia</label>
+                <input type="text" id="field-lacre-lavanderia" class="form-input" placeholder="Código do lacre">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-acabamento">5. Acabamento</label>
+                <input type="text" id="field-acabamento" class="form-input" placeholder="Responsável pelo acabamento">
+              </div>
+              <div class="form-group form-group--full">
+                <label class="form-label" for="field-fase-final">6. Fase Final</label>
+                <input type="text" id="field-fase-final" class="form-input" placeholder="Ex.: Expedição completa — conferir etiquetas e embalar">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO C: TABELAS DE MEDIDAS ═══ -->
+        <div class="collapsible open" data-section="medidas">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 3H3v18h18V3zM9 3v18M3 9h18M3 15h18"/></svg>
+              C. Tabelas de Medidas
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+
+            <!-- Tabela 1: P/M/G -->
+            <div style="margin-bottom: var(--space-6);">
+              <div class="measure-table-title">
+                <span class="form-label" style="white-space: nowrap;">Tabela 1 — Título:</span>
+                <input type="text" id="measure-title-pmg" class="form-input" placeholder="Ex.: Elástico da Alça – Tam 7mm">
+              </div>
+              <div class="measure-table-container">
+                <table class="data-table" id="measure-table-pmg">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 160px;">Descrição</th>
+                      <th>P</th>
+                      <th>M</th>
+                      <th>G</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Comprimento"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Busto"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Cintura"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-add-measure-row="measure-table-pmg" style="margin-top: var(--space-2);">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar Linha
+              </button>
+            </div>
+
+            <!-- Tabela 2: Numeração 34–46 -->
+            <div>
+              <div class="measure-table-title">
+                <span class="form-label" style="white-space: nowrap;">Tabela 2 — Título:</span>
+                <input type="text" id="measure-title-num" class="form-input" placeholder="Ex.: Punho da Barra">
+              </div>
+              <div class="measure-table-container">
+                <table class="data-table" id="measure-table-num">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 140px;">Descrição</th>
+                      <th>34</th>
+                      <th>36</th>
+                      <th>38</th>
+                      <th>40</th>
+                      <th>42</th>
+                      <th>44</th>
+                      <th>46</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Comprimento"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Busto"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Ex.: Quadril"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                      <td><input type="text" class="form-input" placeholder="—"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-add-measure-row="measure-table-num" style="margin-top: var(--space-2);">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar Linha
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO D: OBSERVAÇÕES ═══ -->
+        <div class="collapsible open" data-section="observacoes">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              D. Observações Importantes
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="form-group" style="margin-bottom: var(--space-4);">
+              <label class="form-label" for="field-obs-costura">Costura</label>
+              <textarea id="field-obs-costura" class="form-textarea" rows="3" placeholder="Ex.: Costura da barra na máquina reta. Ponto 3mm..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Bordado / Silk — Combinação de Cores</label>
+              <div id="color-combos-container" class="color-combos">
+                <div class="color-combo-row">
+                  <input type="text" class="form-input" placeholder="Cor da Peça" value="">
+                  <span class="color-combo-row__separator">→</span>
+                  <input type="text" class="form-input" placeholder="Cor do Bordado" value="">
+                  <button type="button" class="btn btn--ghost btn--icon color-combo-remove" data-tooltip="Remover">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+              <button class="btn btn--ghost btn--sm" id="add-color-combo" style="margin-top: var(--space-2);">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar Combinação
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO E: FOTO DO MODELO ═══ -->
+        <div class="collapsible open" data-section="foto">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              E. Foto do Modelo / Croqui
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="form-group" style="margin-bottom: var(--space-2);">
+              <div class="photo-upload-zone" id="photo-upload-zone">
+                <input type="file" id="field-photo-file" style="display: none;" multiple>
+                
+                <!-- Placeholder de upload -->
+                <div id="photo-upload-placeholder" class="photo-upload-placeholder">
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-text-muted);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <span style="font-size: var(--font-size-sm); margin-top: var(--space-2); font-weight: 500;">Clique ou arraste até 3 fotos do modelo aqui</span>
+                  <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-1);">JPG ou PNG (As fotos serão comprimidas e salvas na planilha)</span>
+                </div>
+              </div>
+              
+              <!-- Container de Previews Multi-Fotos -->
+              <div id="photos-preview-grid" class="photos-preview-grid" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO F: QR CODE AUTOMÁTICO ═══ -->
+        <div class="collapsible open" data-section="qrcodes">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3h-3M14 20h3M20 20v-3"/></svg>
+              F. QR Code da Peça
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="qr-auto-section">
+              <!-- Estado: Não salva ainda -->
+              <div id="qr-auto-pending" class="qr-auto-message">
+                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-text-muted); margin-bottom: var(--space-3);">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3h-3M14 20h3M20 20v-3"/>
+                </svg>
+                <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); text-align: center; max-width: 400px;">
+                  O <strong>QR Code único</strong> desta peça será gerado automaticamente ao <strong>salvar a ficha</strong>. Ele conterá o link direto para consultar esta ficha no banco de dados.
+                </p>
+              </div>
+              <!-- Estado: Salva (QR gerado) -->
+              <div id="qr-auto-generated" class="qr-auto-display" style="display: none;">
+                <div class="qr-auto-display__code">
+                  <div id="qr-auto-preview" class="qr-preview" style="width: 120px; height: 120px; border-radius: var(--radius-md);"></div>
+                </div>
+                <div class="qr-auto-display__info">
+                  <div style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-brand-accent); margin-bottom: var(--space-2);">
+                    ✓ QR Code gerado com sucesso
+                  </div>
+                  <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: var(--space-2);">
+                    Este QR Code é único para esta peça e aponta para a ficha salva no banco de dados.
+                  </div>
+                  <div class="form-group" style="margin-top: var(--space-2);">
+                    <label class="form-label">Link da Ficha</label>
+                    <div style="display: flex; gap: var(--space-2);">
+                      <input type="text" id="qr-auto-url" class="form-input" readonly style="font-family: var(--font-family-mono); font-size: var(--font-size-xs);">
+                      <button class="btn btn--ghost btn--icon" id="btn-copy-qr-url" data-tooltip="Copiar link">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SEÇÃO G: APROVAÇÃO ═══ -->
+        <div class="collapsible open" data-section="aprovacao">
+          <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+            <div class="collapsible__title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              G. Validação / Aprovação
+            </div>
+            <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapsible__body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <div class="status-toggle">
+                  <label class="status-option approved">
+                    <input type="radio" name="status-aprovacao" value="aprovada">
+                    <span class="status-option__indicator"></span>
+                    SIM — Aprovada
+                  </label>
+                  <label class="status-option rejected">
+                    <input type="radio" name="status-aprovacao" value="reprovada">
+                    <span class="status-option__indicator"></span>
+                    NÃO — Reprovada
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-responsavel">Responsável</label>
+                <input type="text" id="field-responsavel" class="form-input" placeholder="Nome do responsável">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-data-aprovacao">Data de Aprovação</label>
+                <input type="date" id="field-data-aprovacao" class="form-input">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /view-form -->
+
+    </main>
+
+    <!-- ═══════════════ PRINT AREA ═══════════════ -->
+    <div id="print-area"></div>
+
+
+
+    <!-- ═══════════════ CONFIG MODAL ═══════════════ -->
+    <div id="config-modal-overlay" class="modal-overlay">
+      <div class="modal">
+        <div class="modal__header">
+          <h2 class="modal__title">⚙️ Configurações</h2>
+          <button class="modal__close" id="config-modal-close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-4);">
+          <label class="form-label" for="config-endpoint">URL do Endpoint (Google Apps Script)</label>
+          <input type="url" id="config-endpoint" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">
+            URL obtida ao publicar o Apps Script como Web App
+          </span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-4);">
+          <label class="form-label" for="config-token">Token de API</label>
+          <input type="password" id="config-token" class="form-input" placeholder="Seu token secreto (mínimo 8 caracteres)">
+          <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">
+            Mesmo token configurado no Script Properties do Apps Script
+          </span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-4);">
+          <label class="form-label" for="config-public-url">URL Pública de Consulta (opcional)</label>
+          <input type="url" id="config-public-url" class="form-input" placeholder="https://sua-pagina.github.io/fichas/">
+          <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">
+            URL pública do sistema (ex: GitHub Pages) para que os QR Codes funcionem ao escanear pelo celular.
+          </span>
+        </div>
+
+        <div class="modal__actions">
+          <button class="btn btn--secondary" id="btn-test-connection">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Testar Conexão
+          </button>
+          <button class="btn btn--primary" id="btn-save-config">
+            Salvar Configuração
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#app -->
+
+  <!-- ═══════════════ SCRIPTS ═══════════════ -->
+  <!-- QR Code Library (Local Fallback) -->
+  <script src="js/qrcode.min.js"></script>
+
+  <!-- App Modules (order matters: dependencies first) -->
+  <script src="js/security.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/form.js"></script>
+  <script src="js/print.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

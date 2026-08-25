@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════════════════════════
+   LLAMENINA — Fichas Técnicas — Design Tokens
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand Colors ── */
+  --color-brand-primary: #1a1a2e;
+  --color-brand-secondary: #16213e;
+  --color-brand-accent: #c9a96e;
+  --color-brand-accent-light: #dfc59b;
+  --color-brand-accent-dark: #a3834a;
+
+  /* ── Surface Colors ── */
+  --color-bg-page: #0f0f1a;
+  --color-bg-card: #1a1a2e;
+  --color-bg-card-hover: #1f1f38;
+  --color-bg-input: #12122080;
+  --color-bg-input-focus: #16213e;
+  --color-bg-modal-overlay: rgba(0, 0, 0, 0.65);
+  --color-bg-sidebar: #111125;
+  --color-bg-header: rgba(26, 26, 46, 0.92);
+  --color-bg-section: #15152a;
+  --color-bg-table-row-alt: rgba(201, 169, 110, 0.04);
+  --color-bg-toast: #1e1e3a;
+
+  /* ── Text Colors ── */
+  --color-text-primary: #e8e6f0;
+  --color-text-secondary: #9896a8;
+  --color-text-muted: #6b6980;
+  --color-text-accent: var(--color-brand-accent);
+  --color-text-inverse: #0f0f1a;
+
+  /* ── Semantic Colors ── */
+  --color-success: #4ade80;
+  --color-success-bg: rgba(74, 222, 128, 0.1);
+  --color-success-border: rgba(74, 222, 128, 0.25);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.1);
+  --color-warning-border: rgba(251, 191, 36, 0.25);
+  --color-error: #f87171;
+  --color-error-bg: rgba(248, 113, 113, 0.1);
+  --color-error-border: rgba(248, 113, 113, 0.25);
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(96, 165, 250, 0.1);
+  --color-info-border: rgba(96, 165, 250, 0.25);
+
+  /* ── Border Colors ── */
+  --color-border: rgba(201, 169, 110, 0.12);
+  --color-border-strong: rgba(201, 169, 110, 0.25);
+  --color-border-focus: var(--color-brand-accent);
+  --color-border-input: rgba(201, 169, 110, 0.15);
+
+  /* ── Typography ── */
+  --font-family-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --font-size-xs: 0.6875rem;   /* 11px */
+  --font-size-sm: 0.75rem;     /* 12px */
+  --font-size-base: 0.8125rem; /* 13px */
+  --font-size-md: 0.875rem;    /* 14px */
+  --font-size-lg: 1rem;        /* 16px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 2rem;       /* 32px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ── Spacing ── */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+
+  /* ── Border Radius ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 20px rgba(201, 169, 110, 0.15);
+  --shadow-glow-strong: 0 0 30px rgba(201, 169, 110, 0.25);
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index Scale ── */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 500;
+  --z-toast: 700;
+  --z-tooltip: 900;
+
+  /* ── Glassmorphism ── */
+  --glass-bg: rgba(26, 26, 46, 0.75);
+  --glass-border: rgba(201, 169, 110, 0.1);
+  --glass-blur: blur(16px);
+}
