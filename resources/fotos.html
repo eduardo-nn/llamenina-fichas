@@ -231,15 +231,10 @@
       // ── Buscar ficha da API ──
       async function loadFicha() {
         try {
-          const response = await fetch(API_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              _token: API_TOKEN,
-              _timestamp: Date.now(),
-              action: 'get',
-              id: fichaId
-            })
+          const url = API_ENDPOINT + '?token=' + encodeURIComponent(API_TOKEN) + '&action=get&id=' + encodeURIComponent(fichaId) + '&_t=' + Date.now();
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors'
           });
 
           const result = await response.json();

@@ -115,6 +115,8 @@ function doPost(e) {
         return handleUpdate(data.ficha);
       case 'delete':
         return handleDelete(data.id);
+      case 'get':
+        return handleGet(data.id);
       default:
         return jsonResponse({ error: 'Ação inválida', code: 'INVALID_ACTION' });
     }
