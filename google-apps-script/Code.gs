@@ -265,9 +265,12 @@ function handleList() {
     return jsonResponse({ fichas: [], total: 0 });
   }
   
-  const data = sheet.getRange(2, 1, lastRow - 1, TOTAL_COLUMNS).getValues();
   const fichas = data
-    .filter(row => row[COLUMNS.ATIVO - 1] !== 'FALSE')
+    .filter(row => {
+      // Ignorar linhas vazias (sem ID)
+      if (!row[COLUMNS.ID - 1] || String(row[COLUMNS.ID - 1]).trim() === '') return false;
+      return row[COLUMNS.ATIVO - 1] !== 'FALSE';
+    })
     .map(rowToObject);
   
   logAudit('READ', '', 'Listou ' + fichas.length + ' fichas');
@@ -295,6 +298,8 @@ function handleSearch(query) {
   
   const fichas = data
     .filter(row => {
+      // Ignorar linhas vazias (sem ID)
+      if (!row[COLUMNS.ID - 1] || String(row[COLUMNS.ID - 1]).trim() === '') return false;
       if (row[COLUMNS.ATIVO - 1] === 'FALSE') return false;
       const searchable = [
         row[COLUMNS.MODELO - 1],
