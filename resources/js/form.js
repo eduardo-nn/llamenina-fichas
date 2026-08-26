@@ -31,8 +31,6 @@ const FichaForm = (() => {
     faseFinal: 'field-fase-final',
     // Observações
     obsCostura: 'field-obs-costura',
-    // QR Code da Peça (Auto)
-    qrCorteUrl: 'qr-auto-url',
     // Aprovação
     responsavelAprovacao: 'field-responsavel',
     dataAprovacao: 'field-data-aprovacao'
@@ -73,12 +71,13 @@ const FichaForm = (() => {
       }
     }
 
-    // Se o QR Code da peça estiver vazio mas temos um ID, gerar a URL correspondente
-    if (data.id && (!data.qrCorteUrl || data.qrCorteUrl.trim() === '')) {
+    // Gerar SEMPRE a URL do QR Code usando a URL pública configurada
+    if (data.id) {
       let baseUrl = Config.getPublicUrl();
       if (!baseUrl || baseUrl.trim() === '') {
         baseUrl = window.location.href.split('?')[0];
       }
+      // Garantir que termina corretamente para concatenar com ?id=
       if (!baseUrl.includes('?') && !baseUrl.endsWith('/') && !baseUrl.endsWith('.html')) {
         baseUrl += '/';
       }
