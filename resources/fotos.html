@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>LLAMENINA — Fotos da Peça</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 20px 16px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .header__brand {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #f0c040;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header__title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .header__subtitle {
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .info-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .info-chip {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+
+    .info-chip strong {
+      color: #f0c040;
+    }
+
+    .photos-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .photo-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: zoom-in;
+    }
+
+    .photo-card__label {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #aaa;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Fullscreen overlay for zoomed photos */
+    .fullscreen-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-out;
+    }
+
+    .fullscreen-overlay.active {
+      display: flex;
+    }
+
+    .fullscreen-overlay img {
+      max-width: 95vw;
+      max-height: 95vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+      font-size: 1rem;
+    }
+
+    .loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #f0c040;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: #ff6b6b;
+      font-size: 1rem;
+    }
+
+    .no-photos {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+
+    .no-photos__icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 10000;
+      display: none;
+    }
+
+    .fullscreen-overlay.active ~ .close-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header__brand">LLAMENINA</div>
+    <div class="header__title" id="page-title">Fotos da Peça</div>
+    <div class="header__subtitle" id="page-subtitle">Carregando...</div>
+  </div>
+
+  <div class="info-bar" id="info-bar" style="display:none;"></div>
+
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      Carregando fotos...
+    </div>
+  </div>
+
+  <div class="fullscreen-overlay" id="fullscreen-overlay">
+    <img id="fullscreen-img" src="" alt="Foto ampliada">
+  </div>
+  <button class="close-btn" id="close-fullscreen">&times;</button>
+
+  <script>
+    (function() {
+      // ── Configuração da API ──
+      const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxzWXmKvVZ7ha-0bfjNLGdLu6XC96m9PpXGEO_U__e-7NhdupZ948qrWNog7H2Z2TdH/exec';
+      const API_TOKEN = 'Llamenina2026SafeTokenFichas!';
+
+      // ── Extrair ID da URL ──
+      const params = new URLSearchParams(window.location.search);
+      const fichaId = params.get('id');
+
+      const contentEl = document.getElementById('content');
+      const titleEl = document.getElementById('page-title');
+      const subtitleEl = document.getElementById('page-subtitle');
+      const infoBar = document.getElementById('info-bar');
+
+      if (!fichaId) {
+        contentEl.innerHTML = '<div class="error-msg">⚠️ Nenhum ID de ficha informado na URL.</div>';
+        subtitleEl.textContent = '';
+        return;
+      }
+
+      // ── Buscar ficha da API ──
+      async function loadFicha() {
+        try {
+          const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              _token: API_TOKEN,
+              _timestamp: Date.now(),
+              action: 'get',
+              id: fichaId
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            contentEl.innerHTML = '<div class="error-msg">❌ ' + result.error + '</div>';
+            subtitleEl.textContent = 'Erro ao carregar';
+            return;
+          }
+
+          const ficha = result.ficha || result;
+          renderFicha(ficha);
+        } catch (err) {
+          contentEl.innerHTML = '<div class="error-msg">❌ Erro de conexão: ' + err.message + '</div>';
+          subtitleEl.textContent = 'Erro de rede';
+        }
+      }
+
+      // ── Renderizar fotos ──
+      function renderFicha(ficha) {
+        // Informações básicas da peça
+        const modelo = ficha.modelo || 'Sem título';
+        const ref = ficha.referencia || '';
+        const tecido = ficha.tecido || '';
+
+        titleEl.textContent = 'Fotos — ' + modelo;
+        subtitleEl.textContent = ref ? ('Ref: ' + ref) : 'Visualização de fotos anexadas';
+
+        // Mostrar chips de informação
+        if (ref || tecido) {
+          infoBar.style.display = 'flex';
+          let chips = '';
+          if (ref) chips += '<span class="info-chip"><strong>Ref:</strong> ' + escapeHtml(ref) + '</span>';
+          if (tecido) chips += '<span class="info-chip"><strong>Tecido:</strong> ' + escapeHtml(tecido) + '</span>';
+          if (ficha.op) chips += '<span class="info-chip"><strong>OP:</strong> ' + escapeHtml(ficha.op) + '</span>';
+          infoBar.innerHTML = chips;
+        }
+
+        // Extrair fotos
+        let fotos = [];
+        if (ficha.foto) {
+          try {
+            fotos = JSON.parse(ficha.foto);
+          } catch (e) {
+            // Pode ser uma única URL string
+            if (typeof ficha.foto === 'string' && ficha.foto.startsWith('data:')) {
+              fotos = [ficha.foto];
+            }
+          }
+        }
+
+        if (!fotos || fotos.length === 0) {
+          contentEl.innerHTML = `
+            <div class="no-photos">
+              <div class="no-photos__icon">📷</div>
+              <p>Nenhuma foto anexada a esta ficha.</p>
+            </div>`;
+          return;
+        }
+
+        // Renderizar grid de fotos
+        let html = '<div class="photos-grid">';
+        fotos.forEach(function(fotoSrc, index) {
+          html += `
+            <div class="photo-card">
+              <img src="${fotoSrc}" alt="Foto ${index + 1}" onclick="openFullscreen(this.src)">
+              <div class="photo-card__label">Foto ${index + 1} de ${fotos.length}</div>
+            </div>`;
+        });
+        html += '</div>';
+        contentEl.innerHTML = html;
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      // ── Fullscreen zoom ──
+      window.openFullscreen = function(src) {
+        const overlay = document.getElementById('fullscreen-overlay');
+        const img = document.getElementById('fullscreen-img');
+        img.src = src;
+        overlay.classList.add('active');
+      };
+
+      document.getElementById('fullscreen-overlay').addEventListener('click', function() {
+        this.classList.remove('active');
+      });
+      document.getElementById('close-fullscreen').addEventListener('click', function() {
+        document.getElementById('fullscreen-overlay').classList.remove('active');
+      });
+
+      // ── Iniciar ──
+      loadFicha();
+    })();
+  </script>
+</body>
+</html>

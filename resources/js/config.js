@@ -108,7 +108,10 @@ const Config = (() => {
    * @returns {string}
    */
   function getPublicUrl() {
-    return _publicUrl;
+    if (_publicUrl && _publicUrl.trim() !== '') {
+      return _publicUrl;
+    }
+    return DEFAULT_CONFIG.PUBLIC_URL || '';
   }
 
   /**

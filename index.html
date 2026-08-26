@@ -4,12 +4,18 @@
   <meta charset="utf-8">
   <title>Redirecionando...</title>
   <script>
-    // Repassar a query string (?id=...) para a pasta resources
-    window.location.href = "./resources/index.html" + window.location.search;
+    // Se a URL tiver ?id=, redirecionar para a página de fotos
+    // Caso contrário, redirecionar para o formulário principal
+    var search = window.location.search;
+    if (search && search.indexOf('id=') !== -1) {
+      window.location.href = "./resources/fotos.html" + search;
+    } else {
+      window.location.href = "./resources/index.html" + search;
+    }
   </script>
-  <meta http-equiv="refresh" content="0; URL='./resources/index.html'">
+  <meta http-equiv="refresh" content="2; URL='./resources/index.html'">
 </head>
 <body>
-  <p>Redirecionando para o aplicativo... Se não for redirecionado em alguns segundos, <a href="./resources/index.html">clique aqui</a>.</p>
+  <p>Redirecionando... Se não for redirecionado em alguns segundos, <a href="./resources/index.html">clique aqui</a>.</p>
 </body>
 </html>

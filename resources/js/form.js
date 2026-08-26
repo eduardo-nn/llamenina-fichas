@@ -71,15 +71,21 @@ const FichaForm = (() => {
       }
     }
 
-    // Gerar SEMPRE a URL do QR Code usando a URL pública configurada
+    // Gerar SEMPRE a URL do QR Code apontando para a página de FOTOS
     if (data.id) {
       let baseUrl = Config.getPublicUrl();
       if (!baseUrl || baseUrl.trim() === '') {
         baseUrl = window.location.href.split('?')[0];
       }
-      // Garantir que termina corretamente para concatenar com ?id=
-      if (!baseUrl.includes('?') && !baseUrl.endsWith('/') && !baseUrl.endsWith('.html')) {
-        baseUrl += '/';
+      // Apontar para fotos.html (página exclusiva de visualização de fotos)
+      baseUrl = baseUrl.replace(/index\.html$/, 'fotos.html');
+      if (!baseUrl.endsWith('fotos.html')) {
+        // Se a URL não termina com fotos.html, adicionar
+        if (baseUrl.endsWith('/')) {
+          baseUrl += 'fotos.html';
+        } else {
+          baseUrl += '/fotos.html';
+        }
       }
       data.qrCorteUrl = baseUrl + '?id=' + data.id;
     }
