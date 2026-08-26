@@ -122,15 +122,7 @@ const PrintModule = (() => {
         </div>
       </div>
 
-      <!-- ═══ FOTOS DO MODELO ═══ -->
-      ${printFotos.length > 0 ? `
-      <div class="print-section print-no-break">
-        <div class="print-section__title">Fotos / Croquis do Modelo</div>
-        <div class="print-photos-container">
-          ${printFotos.map(f => `<div class="print-photo-item"><img src="${f}"></div>`).join('')}
-        </div>
-      </div>
-      ` : ''}
+
 
       <!-- ═══ TABELA MEDIDAS P/M/G ═══ -->
       ${generateMeasureTableHTML('Medidas (P ao G)', data.medidasPMGTitulo, data.medidasPMG, ['P', 'M', 'G'])}
