@@ -18,7 +18,7 @@ const Config = (() => {
   const DEFAULT_CONFIG = {
     ENDPOINT: 'https://script.google.com/macros/s/AKfycbxzWXmKvVZ7ha-0bfjNLGdLu6XC96m9PpXGEO_U__e-7NhdupZ948qrWNog7H2Z2TdH/exec',
     TOKEN: 'Llamenina2026SafeTokenFichas!',
-    PUBLIC_URL: 'https://eduardo-nn.github.io/llamenina-fichas/resources/index.html'
+    PUBLIC_URL: 'https://eduardo-nn.github.io/llamenina-fichas/resources/fotos.html'
   };
 
   // Valores em memória (nunca persistidos em localStorage)
@@ -34,6 +34,9 @@ const Config = (() => {
       _endpointUrl = localStorage.getItem(STORAGE_KEYS.ENDPOINT) || DEFAULT_CONFIG.ENDPOINT || '';
       _apiToken = localStorage.getItem(STORAGE_KEYS.TOKEN) || DEFAULT_CONFIG.TOKEN || '';
       _publicUrl = localStorage.getItem(STORAGE_KEYS.PUBLIC_URL) || DEFAULT_CONFIG.PUBLIC_URL || '';
+      if (_publicUrl.includes('127.0.0.1') || _publicUrl.includes('localhost') || _publicUrl.startsWith('file:')) {
+        _publicUrl = DEFAULT_CONFIG.PUBLIC_URL;
+      }
     } catch (e) {
       console.warn('[Config] Não foi possível acessar localStorage:', e.message);
       _endpointUrl = DEFAULT_CONFIG.ENDPOINT || '';
@@ -95,7 +98,11 @@ const Config = (() => {
    * @param {string} url
    */
   function setPublicUrl(url) {
-    _publicUrl = (url || '').trim();
+    let cleanUrl = (url || '').trim();
+    if (cleanUrl.includes('127.0.0.1') || cleanUrl.includes('localhost') || cleanUrl.startsWith('file:')) {
+      cleanUrl = DEFAULT_CONFIG.PUBLIC_URL;
+    }
+    _publicUrl = cleanUrl;
     try {
       localStorage.setItem(STORAGE_KEYS.PUBLIC_URL, _publicUrl);
     } catch (e) {
@@ -108,10 +115,10 @@ const Config = (() => {
    * @returns {string}
    */
   function getPublicUrl() {
-    if (_publicUrl && _publicUrl.trim() !== '') {
+    if (_publicUrl && _publicUrl.trim() !== '' && !_publicUrl.includes('127.0.0.1') && !_publicUrl.includes('localhost') && !_publicUrl.startsWith('file:')) {
       return _publicUrl;
     }
-    return DEFAULT_CONFIG.PUBLIC_URL || '';
+    return DEFAULT_CONFIG.PUBLIC_URL;
   }
 
   /**

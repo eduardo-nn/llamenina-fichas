@@ -37,6 +37,25 @@ const FichaForm = (() => {
   };
 
   /**
+   * Retorna a URL pública de fotos para o QR Code de uma ficha técnica.
+   * NUNCA retorna 127.0.0.1, localhost ou file://
+   * @param {string} fichaId
+   * @returns {string}
+   */
+  function getFichaPublicQRUrl(fichaId) {
+    if (!fichaId) return '';
+    let baseUrl = Config.getPublicUrl() || 'https://eduardo-nn.github.io/llamenina-fichas/resources/fotos.html';
+    if (baseUrl.includes('127.0.0.1') || baseUrl.includes('localhost') || baseUrl.startsWith('file:')) {
+      baseUrl = 'https://eduardo-nn.github.io/llamenina-fichas/resources/fotos.html';
+    }
+    baseUrl = baseUrl.replace(/index\.html$/, 'fotos.html');
+    if (!baseUrl.endsWith('fotos.html')) {
+      baseUrl = baseUrl.replace(/\/$/, '') + '/fotos.html';
+    }
+    return baseUrl + '?id=' + encodeURIComponent(fichaId);
+  }
+
+  /**
    * Inicializa o módulo de formulário
    */
   function init() {
@@ -71,23 +90,9 @@ const FichaForm = (() => {
       }
     }
 
-    // Gerar SEMPRE a URL do QR Code apontando para a página de FOTOS
+    // Gerar SEMPRE a URL do QR Code apontando exclusivamente para a página pública de FOTOS
     if (data.id) {
-      let baseUrl = Config.getPublicUrl();
-      if (!baseUrl || baseUrl.trim() === '') {
-        baseUrl = window.location.href.split('?')[0];
-      }
-      // Apontar para fotos.html (página exclusiva de visualização de fotos)
-      baseUrl = baseUrl.replace(/index\.html$/, 'fotos.html');
-      if (!baseUrl.endsWith('fotos.html')) {
-        // Se a URL não termina com fotos.html, adicionar
-        if (baseUrl.endsWith('/')) {
-          baseUrl += 'fotos.html';
-        } else {
-          baseUrl += '/fotos.html';
-        }
-      }
-      data.qrCorteUrl = baseUrl + '?id=' + data.id;
+      data.qrCorteUrl = getFichaPublicQRUrl(data.id);
     }
 
     // Status de aprovação
@@ -474,9 +479,8 @@ const FichaForm = (() => {
     previewDiv.innerHTML = '';
 
     if (currentFichaId) {
-      // Gerar a URL única baseada na origem e no ID da ficha
-      const baseUrl = window.location.href.split('?')[0];
-      const uniqueUrl = baseUrl + '?id=' + currentFichaId;
+      // Gerar a URL pública única apontando exclusivamente para fotos.html
+      const uniqueUrl = getFichaPublicQRUrl(currentFichaId);
       urlInput.value = uniqueUrl;
 
       if (typeof QRCode === 'undefined') {

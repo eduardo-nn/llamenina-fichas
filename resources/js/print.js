@@ -170,15 +170,15 @@ const PrintModule = (() => {
         </div>
       </div>
 
-      <!-- ═══ QR CODES ═══ -->
-      <div class="print-qr-section print-no-break">
-        ${data.qrCorteUrl ? `
-        <div class="print-qr-item">
-          <div class="print-qr-item__label">QR da Peça</div>
-          <div class="print-qr-peca-el"></div>
+        <!-- ═══ QR CODES ═══ -->
+        <div class="print-qr-section print-no-break">
+          ${data.qrCorteUrl ? `
+          <div class="print-qr-item">
+            <div class="print-qr-item__label">QR Fotos</div>
+            <div class="print-qr-peca-el"></div>
+          </div>
+          ` : ''}
         </div>
-        ` : ''}
-      </div>
     `;
 
     // Gerar QR codes no container
