@@ -3,32 +3,34 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Brand Colors ── */
-  --color-brand-primary: #1a1a2e;
-  --color-brand-secondary: #16213e;
-  --color-brand-accent: #c9a96e;
-  --color-brand-accent-light: #dfc59b;
-  --color-brand-accent-dark: #a3834a;
+  /* ── Brand Colors (Paleta LLA FICHA - Vinho & Dourado) ── */
+  --color-brand-primary: #5c0920;
+  --color-brand-secondary: #3b0514;
+  --color-brand-wine: #6a0927;
+  --color-brand-wine-dark: #3b0513;
+  --color-brand-accent: #cda861;
+  --color-brand-accent-light: #e5cb93;
+  --color-brand-accent-dark: #a88339;
 
   /* ── Surface Colors ── */
-  --color-bg-page: #0f0f1a;
-  --color-bg-card: #1a1a2e;
-  --color-bg-card-hover: #1f1f38;
-  --color-bg-input: #12122080;
-  --color-bg-input-focus: #16213e;
-  --color-bg-modal-overlay: rgba(0, 0, 0, 0.65);
-  --color-bg-sidebar: #111125;
-  --color-bg-header: rgba(26, 26, 46, 0.92);
-  --color-bg-section: #15152a;
-  --color-bg-table-row-alt: rgba(201, 169, 110, 0.04);
-  --color-bg-toast: #1e1e3a;
+  --color-bg-page: #0f0b0d;
+  --color-bg-card: #1c1317;
+  --color-bg-card-hover: #261920;
+  --color-bg-input: #150e12;
+  --color-bg-input-focus: #22151b;
+  --color-bg-modal-overlay: rgba(15, 6, 9, 0.75);
+  --color-bg-sidebar: #140d10;
+  --color-bg-header: rgba(28, 19, 23, 0.94);
+  --color-bg-section: #181014;
+  --color-bg-table-row-alt: rgba(205, 168, 97, 0.04);
+  --color-bg-toast: #2a141c;
 
   /* ── Text Colors ── */
-  --color-text-primary: #e8e6f0;
-  --color-text-secondary: #9896a8;
-  --color-text-muted: #6b6980;
+  --color-text-primary: #f5f2f4;
+  --color-text-secondary: #aa9ca2;
+  --color-text-muted: #796c73;
   --color-text-accent: var(--color-brand-accent);
-  --color-text-inverse: #0f0f1a;
+  --color-text-inverse: #0f0b0d;
 
   /* ── Semantic Colors ── */
   --color-success: #4ade80;
@@ -45,10 +47,10 @@
   --color-info-border: rgba(96, 165, 250, 0.25);
 
   /* ── Border Colors ── */
-  --color-border: rgba(201, 169, 110, 0.12);
-  --color-border-strong: rgba(201, 169, 110, 0.25);
+  --color-border: rgba(205, 168, 97, 0.16);
+  --color-border-strong: rgba(205, 168, 97, 0.32);
   --color-border-focus: var(--color-brand-accent);
-  --color-border-input: rgba(201, 169, 110, 0.15);
+  --color-border-input: rgba(205, 168, 97, 0.2);
 
   /* ── Typography ── */
   --font-family-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

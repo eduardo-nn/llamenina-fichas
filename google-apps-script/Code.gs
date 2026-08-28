@@ -21,7 +21,7 @@ const CONFIG = {
   SHEET_LOGS: 'Logs',
   RATE_LIMIT_MAX: 30,         // Máx requisições por minuto
   RATE_LIMIT_WINDOW: 60000,   // 1 minuto em ms
-  MAX_PAYLOAD_SIZE: 153600,    // 150KB
+  DRIVE_FOLDER_NAME: 'LLAMENINA_Fotos_Fichas',
 };
 
 // ═══════════════ COLUNAS DA PLANILHA ═══════════════
@@ -76,11 +76,7 @@ function doPost(e) {
     if (!body) {
       return jsonResponse({ error: 'Body vazio', code: 'EMPTY_BODY' });
     }
-    
-    // 2. Verificar tamanho
-    if (body.length > CONFIG.MAX_PAYLOAD_SIZE) {
-      return jsonResponse({ error: 'Payload excede 50KB', code: 'PAYLOAD_TOO_LARGE' });
-    }
+
     
     let data;
     try {
@@ -123,7 +119,7 @@ function doPost(e) {
     
   } catch (err) {
     logAudit('ERROR', '', err.message);
-    return jsonResponse({ error: 'Erro interno do servidor', code: 'SERVER_ERROR' });
+    return jsonResponse({ error: 'Erro interno: ' + err.message, code: 'SERVER_ERROR' });
   }
 }
 
@@ -186,6 +182,9 @@ function handleCreate(ficha) {
   const id = ficha.id || Utilities.getUuid();
   const now = new Date().toISOString();
   
+  // Salvar fotos no Google Drive (alta qualidade)
+  ficha = processAndUploadPhotos_(ficha, id);
+  
   const row = buildRow(id, now, now, ficha);
   sheet.appendRow(row);
   
@@ -215,6 +214,9 @@ function handleUpdate(ficha) {
   
   const now = new Date().toISOString();
   const originalCreation = sheet.getRange(rowIndex, COLUMNS.TIMESTAMP_CRIACAO).getValue();
+  
+  // Salvar fotos no Google Drive (alta qualidade)
+  ficha = processAndUploadPhotos_(ficha, ficha.id);
   
   const row = buildRow(ficha.id, originalCreation || now, now, ficha);
   sheet.getRange(rowIndex, 1, 1, TOTAL_COLUMNS).setValues([row]);
@@ -267,6 +269,7 @@ function handleList() {
     return jsonResponse({ fichas: [], total: 0 });
   }
   
+  const data = sheet.getRange(2, 1, lastRow - 1, TOTAL_COLUMNS).getValues();
   const fichas = data
     .filter(row => {
       // Ignorar linhas vazias (sem ID)
@@ -376,7 +379,7 @@ function buildRow(id, createdAt, updatedAt, ficha) {
     s(ficha.obsCostura || ''),
     JSON.stringify(ficha.combinacoesCores || []),
     s(ficha.qrCorteUrl || ''),
-    s(ficha.qrAnexosUrl || ''),
+    JSON.stringify(ficha.fluxoProducao || []),
     s(ficha.qrFeedbackUrl || ''),
     s(ficha.statusAprovacao || 'pendente'),
     s(ficha.responsavelAprovacao || ''),
@@ -416,6 +419,7 @@ function rowToObject(row) {
     obsCostura: row[COLUMNS.OBS_COSTURA - 1],
     combinacoesCores: safeJsonParse(row[COLUMNS.COMBINACOES_CORES - 1]),
     qrCorteUrl: row[COLUMNS.QR_CORTE - 1],
+    fluxoProducao: safeJsonParse(row[COLUMNS.QR_ANEXOS - 1]),
     qrAnexosUrl: row[COLUMNS.QR_ANEXOS - 1],
     qrFeedbackUrl: row[COLUMNS.QR_FEEDBACK - 1],
     statusAprovacao: row[COLUMNS.STATUS - 1],
@@ -550,6 +554,140 @@ function logAudit(action, fichaId, details) {
   } catch (e) {
     Logger.log('Erro ao gravar log: ' + e.message);
   }
+}
+
+// ═══════════════ GOOGLE DRIVE — FOTOS ═══════════════
+
+/**
+ * Processa fotos base64 do payload e faz upload para o Google Drive.
+ * Retorna o objeto ficha com campo 'foto' substituído por JSON de URLs do Drive.
+ * Mantém retrocompatibilidade: se as fotos já forem URLs (não base64), não reenvia.
+ */
+function processAndUploadPhotos_(ficha, fichaId) {
+  if (!ficha.foto) return ficha;
+
+  let fotos = [];
+  try {
+    fotos = typeof ficha.foto === 'string' ? JSON.parse(ficha.foto) : ficha.foto;
+  } catch (e) {
+    // Se não for JSON válido, pode ser uma única string base64
+    if (typeof ficha.foto === 'string' && ficha.foto.startsWith('data:')) {
+      fotos = [ficha.foto];
+    } else {
+      return ficha;
+    }
+  }
+
+  if (!Array.isArray(fotos) || fotos.length === 0) return ficha;
+
+  const folder = getOrCreateDriveFolder_();
+  const uploadedUrls = [];
+
+  fotos.forEach(function(fotoItem, index) {
+    // Se já for uma URL do Drive (não base64), manter como está
+    if (typeof fotoItem === 'string' && !fotoItem.startsWith('data:')) {
+      uploadedUrls.push(fotoItem);
+      return;
+    }
+
+    try {
+      // Extrair tipo MIME e dados base64
+      var matches = fotoItem.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+      if (!matches) {
+        uploadedUrls.push(fotoItem); // Fallback: manter original
+        return;
+      }
+
+      var mimeType = matches[1];
+      var base64Data = matches[2];
+      var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType,
+        fichaId + '_foto_' + (index + 1) + '.' + (mimeType === 'image/png' ? 'png' : 'jpg'));
+
+      // Verificar se já existe arquivo com mesmo nome e substituir
+      var fileName = blob.getName();
+      var existingFiles = folder.getFilesByName(fileName);
+      while (existingFiles.hasNext()) {
+        existingFiles.next().setTrashed(true);
+      }
+
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+      // Gerar URL direta de visualização da imagem
+      var fileId = file.getId();
+      var directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
+      uploadedUrls.push(directUrl);
+    } catch (err) {
+      Logger.log('Erro ao salvar foto ' + (index + 1) + ': ' + err.message);
+      uploadedUrls.push(fotoItem); // Fallback: manter base64 se der erro
+    }
+  });
+
+  // Substituir campo foto com array de URLs
+  ficha.foto = JSON.stringify(uploadedUrls);
+  return ficha;
+}
+
+/**
+ * Obtém ou cria a pasta no Google Drive para armazenar fotos das fichas
+ */
+function getOrCreateDriveFolder_() {
+  var folderName = CONFIG.DRIVE_FOLDER_NAME;
+  var folders = DriveApp.getFoldersByName(folderName);
+
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+
+  var folder = DriveApp.createFolder(folderName);
+  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return folder;
+}
+
+/**
+ * EXECUTAR ESTA FUNÇÃO UMA VEZ NO EDITOR PARA AUTORIZAR O GOOGLE DRIVE:
+ * 1. Selecione "autorizarPermissoesDrive" no menu suspenso acima.
+ * 2. Clique em "Executar".
+ * 3. Uma janela vai pedir permissão de acesso ao Drive e à Planilha. Aceite (Avançado > Permitir).
+ */
+function autorizarPermissoesDrive() {
+  const folder = getOrCreateDriveFolder_();
+  Logger.log('Permissão do Google Drive OK! Pasta pronta: ' + folder.getName() + ' (ID: ' + folder.getId() + ')');
+}
+
+/**
+ * Função utilitária opcional:
+ * Executa uma varredura nas fichas existentes da planilha e migra fotos antigas em base64 para o Google Drive.
+ * (Pode ser executada manualmente pelo botão "Executar" no editor do Apps Script se desejar).
+ */
+function migrarFotosAntigasParaDrive() {
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    Logger.log('Nenhuma ficha para migrar.');
+    return;
+  }
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, TOTAL_COLUMNS).getValues();
+  let migradas = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const id = row[COLUMNS.ID - 1];
+    const fotoRaw = row[COLUMNS.FOTO - 1];
+
+    if (fotoRaw && typeof fotoRaw === 'string' && fotoRaw.includes('data:image')) {
+      const fichaFake = { foto: fotoRaw };
+      const fichaProcessada = processAndUploadPhotos_(fichaFake, id);
+      
+      // Atualiza apenas a coluna FOTO daquela linha na planilha
+      sheet.getRange(i + 2, COLUMNS.FOTO).setValue(fichaProcessada.foto);
+      migradas++;
+      Logger.log('Ficha ' + id + ' migrada para o Drive.');
+    }
+  }
+
+  Logger.log('Migração concluída: ' + migradas + ' fichas migradas.');
 }
 
 // ═══════════════ RESPOSTA ═══════════════

@@ -66,11 +66,6 @@ const API = (() => {
       // Sanitizar dados antes de enviar
       const sanitizedBody = Security.sanitizeObject(body);
 
-      // Validar tamanho do payload
-      if (!Security.validatePayloadSize(sanitizedBody)) {
-        throw new APIError('Dados excedem o tamanho máximo permitido (150KB).', 'PAYLOAD_TOO_LARGE');
-      }
-
       // Google Apps Script não suporta headers customizados em CORS
       // Token enviado no body para POST
       sanitizedBody._token = Config.getToken();

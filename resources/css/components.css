@@ -694,6 +694,98 @@
   padding: 0 var(--space-1);
 }
 
+/* ── Fluxo de Produção Reordenável ── */
+.flow-steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.flow-step-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-section);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  animation: fadeIn 0.2s ease;
+}
+
+.flow-step-row:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-card-hover);
+}
+
+.flow-step-order {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+  background: var(--color-brand-accent);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-step-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.flow-step-btn {
+  width: 20px;
+  height: 14px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 8px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.flow-step-btn:hover:not(:disabled) {
+  background: var(--color-brand-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-brand-accent);
+}
+
+.flow-step-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.flow-step-name-input {
+  width: 170px;
+  min-width: 140px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.flow-step-value-input {
+  flex: 1;
+}
+
+.flow-step-remove {
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.flow-step-remove:hover {
+  color: var(--color-error);
+}
+
+
 /* ── Toolbar ── */
 .toolbar {
   display: flex;
@@ -1064,7 +1156,7 @@
 
 .photos-preview-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-3);
 }
@@ -1079,7 +1171,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
+  height: 110px;
 }
 
 .photo-preview-item img {

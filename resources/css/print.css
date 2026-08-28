@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════
-   LLAMENINA — Fichas Técnicas — Print Styles (A5 / 15×21cm)
+   LLAMENINA — Fichas Técnicas — Print Styles (A5 / 148×210mm)
    ═══════════════════════════════════════════════════════════════ */
 
 @page {
-  size: 150mm 210mm; /* A5 / 15x21 */
-  margin: 0; /* Remove browser default headers and footers */
+  size: 148mm 210mm; /* Formato Padrão A5 */
+  margin: 0; /* Remove cabeçalhos e rodapés automáticos do navegador */
 }
 
 @media print {
-  /* ── Reset all screen styles ── */
+  /* ── Reset geral de tela ── */
   *,
   *::before,
   *::after {
@@ -17,6 +17,7 @@
     animation: none !important;
     transition: none !important;
     backdrop-filter: none !important;
+    box-sizing: border-box;
   }
 
   body {
@@ -24,19 +25,22 @@
     print-color-adjust: exact;
     color-adjust: exact;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 8pt;
-    line-height: 1.3;
+    font-size: 7.5pt;
+    line-height: 1.25;
     color: #000;
     background: #fff !important;
     margin: 0;
     padding: 0;
+    width: 148mm;
+    height: 210mm;
+    overflow: hidden;
   }
 
   body::before {
     display: none !important;
   }
 
-  /* ── Hide non-print elements ── */
+  /* ── Esconder elementos que não são da impressão ── */
   .no-print,
   .app-header,
   .toast-container,
@@ -50,306 +54,362 @@
     display: none !important;
   }
 
-  /* ── Show print area ── */
+  /* ── Área de Impressão (Ocupa 100% da página A5) ── */
   #print-area {
     display: block !important;
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    padding: 4mm 6mm; /* Move margins here to avoid browser header/footer */
+    width: 148mm;
+    height: 210mm;
+    max-height: 210mm;
+    padding: 3mm; /* Respiro externo da folha */
     box-sizing: border-box;
+    background: #fff !important;
   }
 
-  /* ── Print Header ── */
+  /* ── Moldura de Corte Pontilhada/Tracejada (Ocupa altura inteira da folha) ── */
+  .print-sheet {
+    width: 100%;
+    height: 204mm;
+    min-height: 204mm;
+    max-height: 204mm;
+    border: 1.2pt dashed #444; /* Linha de corte pontilhada/tracejada */
+    border-radius: 1mm;
+    padding: 2.5mm 3.5mm;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    background: #fff;
+  }
+
+  /* ── Conteúdo Principal do Topo ao Centro ── */
+  .print-body-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2mm;
+  }
+
+  /* ── 1. Textos Preenchidos: SEMPRE VERMELHOS E EM MAIÚSCULO ── */
+  .print-field__value,
+  .print-header__ref-val,
+  .print-header__op-val,
+  .print-table td,
+  .print-obs__p,
+  .print-combo,
+  .print-combo-val,
+  .print-status__val {
+    color: #cc0000 !important; /* Vermelho vibrante */
+    text-transform: uppercase !important; /* Caixa alta obrigatória */
+    font-weight: 700 !important;
+  }
+
+  /* ── Print Header (Paleta LLA FICHA: Vinho & Dourado) ── */
   .print-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1.5pt solid #000;
-    padding-bottom: 1.5mm;
-    margin-bottom: 2mm;
+    border-bottom: 1.8pt solid #5c0920;
+    padding-bottom: 1.2mm;
+    margin-bottom: 1.2mm;
   }
 
   .print-header__brand {
     display: flex;
     align-items: center;
-    gap: 3mm;
+    gap: 2.5mm;
+  }
+
+  .print-header__logo-img {
+    width: 9.5mm;
+    height: 9.5mm;
+    object-fit: contain;
+    border-radius: 1.5mm;
+    display: block;
+    box-shadow: 0 0.5mm 1.5mm rgba(92, 9, 32, 0.2);
   }
 
   .print-header__logo {
-    width: 10mm;
-    height: 10mm;
-    background: #000;
-    color: #fff;
+    width: 9.5mm;
+    height: 9.5mm;
+    background: #5c0920;
+    color: #cda861;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 12pt;
-    border-radius: 2mm;
+    font-weight: 900;
+    font-size: 11pt;
+    border-radius: 1.5mm;
   }
 
   .print-header__title {
     font-size: 11pt;
-    font-weight: bold;
+    font-weight: 900;
     letter-spacing: 0.5pt;
+    color: #5c0920; /* Tom bordô da logo */
+    line-height: 1.1;
   }
 
   .print-header__subtitle {
-    font-size: 7pt;
-    color: #555;
+    font-size: 6.8pt;
+    color: #9b7938; /* Tom dourado da logo */
     text-transform: uppercase;
-    letter-spacing: 1pt;
+    letter-spacing: 0.8pt;
+    font-weight: 700;
   }
 
   .print-header__meta {
     text-align: right;
-    font-size: 7pt;
-    color: #555;
+    font-size: 6.8pt;
+    color: #444;
+    line-height: 1.2;
   }
 
   .print-header__ref {
-    font-size: 9pt;
-    font-weight: bold;
-    color: #000;
+    font-size: 8.5pt;
+    font-weight: 800;
+    color: #5c0920;
   }
 
-  /* ── Print Sections ── */
+  /* ── Seções de Impressão ── */
   .print-section {
-    margin-bottom: 1.5mm;
+    margin-bottom: 1mm;
     page-break-inside: avoid;
   }
 
   .print-section__title {
-    font-size: 7.5pt;
-    font-weight: bold;
+    font-size: 7pt;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.5pt;
-    background: #f0f0f0;
-    padding: 1mm 2mm;
-    margin-bottom: 1.5mm;
-    border-left: 2pt solid #000;
+    letter-spacing: 0.4pt;
+    background: #fbf5eb; /* Fundo suave perolado/dourado */
+    padding: 0.7mm 2mm;
+    margin-bottom: 1mm;
+    border-left: 2.5pt solid #5c0920; /* Borda bordô */
+    color: #5c0920; /* Texto bordô */
   }
 
-  /* ── Print Grid (key-value pairs) ── */
+  /* ── 7. Topo: Bloco de Identificação + QR Code Lado a Lado ── */
+  .print-id-wrapper {
+    display: flex;
+    gap: 2.5mm;
+    align-items: stretch;
+    margin-bottom: 1mm;
+  }
+
+  .print-id-section {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .print-id-qr {
+    width: 24mm;
+    min-width: 24mm;
+    max-width: 24mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 0.6pt solid #bbb;
+    border-radius: 1.5mm;
+    background: #fafafa;
+    padding: 1mm;
+    box-sizing: border-box;
+  }
+
+  .print-id-qr__label {
+    font-size: 5.5pt;
+    font-weight: 800;
+    color: #222;
+    margin-bottom: 0.8mm;
+    text-transform: uppercase;
+    letter-spacing: 0.3pt;
+    text-align: center;
+  }
+
+  .print-id-qr canvas,
+  .print-id-qr img {
+    width: 19mm !important;
+    height: 19mm !important;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  /* ── Print Grid (Pares Chave-Valor) ── */
   .print-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1mm 4mm;
-    font-size: 7.5pt;
+    gap: 0.6mm 3.5mm;
+    font-size: 7.2pt;
   }
 
-  .print-grid--3cols {
+  .print-grid--flow {
     grid-template-columns: repeat(3, 1fr);
-  }
-
-  .print-grid--4cols {
-    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6mm 2.5mm;
   }
 
   .print-field {
     display: flex;
     gap: 1mm;
-    padding: 0.5mm 0;
+    padding: 0.3mm 0;
     border-bottom: 0.5pt dotted #ccc;
+    align-items: baseline;
   }
 
   .print-field__label {
-    font-weight: bold;
+    font-weight: 800;
     white-space: nowrap;
-    color: #333;
-    font-size: 7pt;
+    color: #222;
+    font-size: 6.8pt;
     min-width: fit-content;
   }
 
   .print-field__value {
-    color: #000;
     flex: 1;
+    word-break: break-word;
+    font-size: 7.2pt;
   }
 
   .print-field--full {
     grid-column: 1 / -1;
   }
 
-  /* ── Print Tables ── */
+  /* ── Tabelas de Medidas ── */
   .print-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 7pt;
-    margin-top: 1mm;
-  }
-
-  .print-table__title {
-    font-size: 7pt;
-    font-weight: bold;
-    margin-bottom: 1mm;
-    color: #333;
+    font-size: 6.8pt;
+    margin-top: 0.5mm;
   }
 
   .print-table th {
-    background: #e8e8e8 !important;
-    font-weight: bold;
-    padding: 1mm 1.5mm;
-    border: 0.5pt solid #999;
+    background: #e4e4e4 !important;
+    font-weight: 800;
+    padding: 0.8mm 1.2mm;
+    border: 0.5pt solid #888;
     text-align: center;
-    font-size: 6.5pt;
+    font-size: 6.2pt;
     text-transform: uppercase;
+    color: #111;
   }
 
   .print-table td {
-    padding: 1mm 1.5mm;
-    border: 0.5pt solid #bbb;
+    padding: 0.7mm 1.2mm;
+    border: 0.5pt solid #aaa;
     text-align: center;
+    font-size: 6.8pt;
   }
 
   .print-table td:first-child {
     text-align: left;
-    font-weight: bold;
-    background: #f5f5f5 !important;
+    background: #f7f7f7 !important;
   }
 
-  /* ── Print Observations ── */
+  /* ── 6. Observações Formatadas por Parágrafos ── */
   .print-obs {
-    font-size: 7pt;
     padding: 1mm 2mm;
     border: 0.5pt solid #ccc;
     border-radius: 1mm;
     background: #fafafa !important;
-    margin-top: 1mm;
+    margin-top: 0.5mm;
   }
 
   .print-obs__label {
-    font-weight: bold;
+    font-weight: 800;
     display: block;
-    margin-bottom: 0.5mm;
-    color: #333;
+    margin-bottom: 0.6mm;
+    color: #222;
+    font-size: 6.8pt;
   }
 
-  /* ── Color Combos in print ── */
+  .print-obs__p {
+    margin: 0 0 1mm 0;
+    line-height: 1.25;
+    font-size: 6.8pt;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .print-obs__p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ── Combinações de Cores ── */
   .print-combos {
     display: flex;
     flex-wrap: wrap;
-    gap: 1mm 3mm;
-    font-size: 7pt;
-    margin-top: 1mm;
+    gap: 0.8mm 2.5mm;
+    font-size: 6.8pt;
+    margin-top: 0.5mm;
   }
 
   .print-combo {
-    padding: 0.5mm 2mm;
-    border: 0.5pt solid #ccc;
-    border-radius: 1mm;
-    background: #f9f9f9 !important;
+    padding: 0.4mm 1.8mm;
+    border: 0.5pt solid #bbb;
+    border-radius: 0.8mm;
+    background: #f8f8f8 !important;
     white-space: nowrap;
   }
 
-  /* ── QR Codes Footer ── */
-  .print-qr-section {
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-    margin-top: 1.5mm;
-    padding-top: 1.5mm;
-    border-top: 1pt solid #000;
+  .print-combo-label {
+    color: #333;
+    font-weight: 700;
   }
 
-  .print-qr-item {
-    text-align: center;
-    font-size: 6pt;
-  }
-
-  .print-qr-item__label {
-    font-weight: bold;
-    margin-bottom: 1mm;
-    text-transform: uppercase;
-    letter-spacing: 0.3pt;
-  }
-
-  .print-qr-item canvas,
-  .print-qr-item img {
-    width: 16mm !important;
-    height: 16mm !important;
-    image-rendering: pixelated;
-  }
-
-  /* ── Print Status ── */
+  /* ── Status e Aprovação (Rodapé Fixo) ── */
   .print-status {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1.5mm;
-    padding-top: 1.5mm;
-    border-top: 0.5pt solid #999;
-    font-size: 7pt;
+    margin-top: 1mm;
+    padding-top: 1mm;
+    border-top: 1pt solid #222;
+    font-size: 6.8pt;
   }
 
   .print-status__approval {
     display: flex;
     align-items: center;
     gap: 2mm;
-    font-weight: bold;
+    font-weight: 700;
   }
 
   .print-status__check {
-    width: 3.5mm;
-    height: 3.5mm;
-    border: 0.5pt solid #000;
+    width: 3.2mm;
+    height: 3.2mm;
+    border: 0.6pt solid #000;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 7pt;
+    font-size: 6.5pt;
+    font-weight: 900;
+    color: #000;
+    background: #fff;
   }
 
   .print-status__check.checked::after {
     content: '✓';
+    color: #cc0000;
+    font-weight: 900;
   }
 
   .print-status__meta {
-    font-size: 6.5pt;
+    font-size: 6.2pt;
     color: #555;
+    font-weight: 600;
   }
 
-  /* ── Prevent page breaks ── */
+  /* ── Prevenção de quebra de página ── */
   .print-no-break {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-
-  /* ── Force single page ── */
-  #print-area {
-    max-height: 198mm; /* 210mm - 12mm margins */
-    overflow: hidden;
-  }
-
-  /* ── Photos Container ── */
-  .print-photos-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 3mm;
-    margin-top: 1mm;
-  }
-
-  .print-photo-item {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #fafafa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 1mm;
-    height: 32mm;
-  }
-
-  .print-photo-item img {
-    max-height: 100%;
-    max-width: 100%;
-    object-fit: contain;
-  }
 }
 
-/* ── Screen: Hide print area ── */
+/* ── Screen: Esconder print area ── */
 @media screen {
   #print-area {
     display: none;

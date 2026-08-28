@@ -1,0 +1,12 @@
+# Logs
+*.log
+chrome_debug.log
+neutralinojs.log
+
+# Temporary / Scratch
+scratch/
+dist/release-pkg/
+dist/LLA-FICHA-Windows/
+
+# Node
+node_modules/

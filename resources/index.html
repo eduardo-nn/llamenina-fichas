@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Sistema de Fichas Técnicas de Vestuário — LLAMENINA. Cadastro, gestão e impressão de fichas técnicas integrado com Google Sheets.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://*.googleapis.com https://*.google.com https://script.google.com https://script.googleusercontent.com; img-src 'self' data:;">
-  <title>Fichas Técnicas — LLAMENINA</title>
+  <meta name="description" content="LLA FICHA — Sistema de Fichas Técnicas de Vestuário. Cadastro, gestão e impressão de fichas internas.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://*.googleapis.com https://*.google.com https://script.google.com https://script.googleusercontent.com; img-src 'self' data: https:;">
+  <title>LLA FICHA — Fichas Técnicas</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/variables.css">
@@ -27,10 +27,10 @@
     <!-- ═══════════════ HEADER ═══════════════ -->
     <header class="app-header no-print">
       <div class="app-header__brand">
-        <div class="app-header__logo">L</div>
+        <img src="img/logo.png" class="app-header__logo-img" alt="Logo LLA FICHA">
         <div>
-          <div class="app-header__title">LLAMENINA</div>
-          <div class="app-header__subtitle">Lista de Fichas Técnicas</div>
+          <div class="app-header__title">LLA FICHA</div>
+          <div class="app-header__subtitle">Ficha Interna</div>
         </div>
       </div>
 
@@ -121,16 +121,39 @@
           </div>
           <div class="collapsible__body">
             <div class="form-grid">
+              <!-- Par 1: Modelo / Pilotista -->
               <div class="form-group">
                 <label class="form-label" for="field-modelo">Modelo <span class="required">*</span></label>
                 <input type="text" id="field-modelo" class="form-input" placeholder="Modelo da peça">
                 <span class="form-error">Campo obrigatório</span>
               </div>
               <div class="form-group">
+                <label class="form-label" for="field-pilotista">Pilotista</label>
+                <input type="text" id="field-pilotista" class="form-input" placeholder="Nome do pilotista">
+              </div>
+
+              <!-- Par 2: REF / Modelista -->
+              <div class="form-group">
                 <label class="form-label" for="field-referencia">Referência (Ref) <span class="required">*</span></label>
                 <input type="text" id="field-referencia" class="form-input" placeholder="Código de referência">
                 <span class="form-error">Campo obrigatório</span>
               </div>
+              <div class="form-group">
+                <label class="form-label" for="field-modelista">Modelista</label>
+                <input type="text" id="field-modelista" class="form-input" placeholder="Nome do modelista">
+              </div>
+
+              <!-- Par 3: OP / Cor Linha -->
+              <div class="form-group">
+                <label class="form-label" for="field-op">OP (Ordem de Produção)</label>
+                <input type="text" id="field-op" class="form-input" placeholder="Número da OP">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-cor-linha">Cor da Linha</label>
+                <input type="text" id="field-cor-linha" class="form-input" placeholder="Cor e referência da linha">
+              </div>
+
+              <!-- Par 4: Tecido / Composição -->
               <div class="form-group">
                 <label class="form-label" for="field-tecido">Tecido / Malha</label>
                 <input type="text" id="field-tecido" class="form-input" placeholder="Tipo de tecido ou malha">
@@ -139,66 +162,44 @@
                 <label class="form-label" for="field-composicao">Composição</label>
                 <input type="text" id="field-composicao" class="form-input" placeholder="Composição do tecido">
               </div>
-              <div class="form-group">
-                <label class="form-label" for="field-op">OP (Ordem de Produção)</label>
-                <input type="text" id="field-op" class="form-input" placeholder="Número da OP">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-modelista">Modelista</label>
-                <input type="text" id="field-modelista" class="form-input" placeholder="Nome do modelista">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-pilotista">Pilotista</label>
-                <input type="text" id="field-pilotista" class="form-input" placeholder="Nome do pilotista">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-cor-linha">Cor da Linha</label>
-                <input type="text" id="field-cor-linha" class="form-input" placeholder="Cor e referência da linha">
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- ═══ SEÇÃO B: FLUXO DE PRODUÇÃO ═══ -->
+        <!-- ═══ SEÇÃO B: FLUXO DE PRODUÇÃO REORDENÁVEL ═══ -->
         <div class="collapsible open" data-section="fluxo">
           <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
             <div class="collapsible__title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
-              B. Fluxo de Produção & Acessos
+              B. Fluxo de Produção (Etapas Reordenáveis)
             </div>
             <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="collapsible__body">
-            <div class="form-grid form-grid--compact">
-              <div class="form-group">
-                <label class="form-label" for="field-corte">1. Corte</label>
-                <input type="text" id="field-corte" class="form-input" placeholder="Local ou tipo de corte">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-bordado-silk">2. Bordado / Silk</label>
-                <input type="text" id="field-bordado-silk" class="form-input" placeholder="Fornecedor ou tipo">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-confeccao">3. Confecção</label>
-                <input type="text" id="field-confeccao" class="form-input" placeholder="Oficina parceira">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-lavanderia">4. Lavanderia</label>
-                <input type="text" id="field-lavanderia" class="form-input" placeholder="Nome da lavanderia">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-lacre-lavanderia">Lacre da Lavanderia</label>
-                <input type="text" id="field-lacre-lavanderia" class="form-input" placeholder="Código do lacre">
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="field-acabamento">5. Acabamento</label>
-                <input type="text" id="field-acabamento" class="form-input" placeholder="Responsável pelo acabamento">
-              </div>
-              <div class="form-group form-group--full">
-                <label class="form-label" for="field-fase-final">6. Fase Final</label>
-                <input type="text" id="field-fase-final" class="form-input" placeholder="Ex.: Expedição completa — conferir etiquetas e embalar">
-              </div>
-            </div>
+            <p style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: var(--space-3);">
+              Use os botões ▲ e ▼ para alterar a sequência das etapas ou adicione etapas personalizadas conforme o fluxo desta peça.
+            </p>
+
+            <datalist id="flow-step-presets">
+              <option value="Corte">
+              <option value="Bordado / Silk">
+              <option value="Confecção">
+              <option value="Lavanderia">
+              <option value="Lacre Lavanderia">
+              <option value="Acabamento">
+              <option value="Fase Final">
+              <option value="Estamparia">
+              <option value="Passadoria">
+              <option value="Revisão">
+              <option value="Embalagem">
+            </datalist>
+
+            <div id="flow-steps-container" class="flow-steps-container"></div>
+
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-add-flow-step" style="margin-top: var(--space-3);">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Adicionar Etapa
+            </button>
           </div>
         </div>
 
@@ -372,7 +373,7 @@
                 <!-- Placeholder de upload -->
                 <div id="photo-upload-placeholder" class="photo-upload-placeholder">
                   <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-text-muted);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  <span style="font-size: var(--font-size-sm); margin-top: var(--space-2); font-weight: 500;">Clique ou arraste até 3 fotos do modelo aqui</span>
+                  <span style="font-size: var(--font-size-sm); margin-top: var(--space-2); font-weight: 500;">Clique ou arraste até 6 fotos do modelo aqui</span>
                   <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-1);">JPG ou PNG (As fotos serão comprimidas e salvas na planilha)</span>
                 </div>
               </div>

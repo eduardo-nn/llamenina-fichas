@@ -10,9 +10,22 @@ const FichaForm = (() => {
   let autoSaveTimer = null;
   let currentFotos = [];
 
-  // ── IDs dos campos do formulário ──
+  // Etapas padrão do fluxo de produção
+  const DEFAULT_FLOW_STEPS = [
+    { etapa: 'Corte', valor: '' },
+    { etapa: 'Bordado / Silk', valor: '' },
+    { etapa: 'Confecção', valor: '' },
+    { etapa: 'Lavanderia', valor: '' },
+    { etapa: 'Lacre Lavanderia', valor: '' },
+    { etapa: 'Acabamento', valor: '' },
+    { etapa: 'Fase Final', valor: '' }
+  ];
+
+  let currentFlowSteps = JSON.parse(JSON.stringify(DEFAULT_FLOW_STEPS));
+
+  // ── IDs dos campos do formulário (Identificação, Observações, Aprovação) ──
   const FIELDS = {
-    // Cabeçalho
+    // Cabeçalho / Identificação
     modelo: 'field-modelo',
     referencia: 'field-referencia',
     op: 'field-op',
@@ -21,14 +34,6 @@ const FichaForm = (() => {
     tecido: 'field-tecido',
     composicao: 'field-composicao',
     corLinha: 'field-cor-linha',
-    // Fluxo de Produção
-    corte: 'field-corte',
-    bordadoSilk: 'field-bordado-silk',
-    confeccao: 'field-confeccao',
-    lavanderia: 'field-lavanderia',
-    lacreLavanderia: 'field-lacre-lavanderia',
-    acabamento: 'field-acabamento',
-    faseFinal: 'field-fase-final',
     // Observações
     obsCostura: 'field-obs-costura',
     // Aprovação
@@ -61,10 +66,12 @@ const FichaForm = (() => {
   function init() {
     setupMeasureTableEvents();
     setupColorComboEvents();
+    setupFlowStepEvents();
     setupAutoSave();
     setupFieldValidation();
     setupQRPreview();
     setupPhotoUploadEvents();
+    renderFlowSteps();
     loadDraft();
   }
 
@@ -89,6 +96,22 @@ const FichaForm = (() => {
         data[key] = el.value.trim();
       }
     }
+
+    // 5. Fluxo de Produção maleável
+    syncFlowInputs();
+    data.fluxoProducao = JSON.parse(JSON.stringify(currentFlowSteps));
+
+    // Preencher campos legados do fluxo para retrocompatibilidade com Google Sheets
+    currentFlowSteps.forEach(step => {
+      const e = (step.etapa || '').toLowerCase();
+      if (e.includes('corte')) data.corte = step.valor || '';
+      else if (e.includes('bordado') || e.includes('silk')) data.bordadoSilk = step.valor || '';
+      else if (e.includes('confec')) data.confeccao = step.valor || '';
+      else if (e.includes('lacre')) data.lacreLavanderia = step.valor || '';
+      else if (e.includes('lavanderia')) data.lavanderia = step.valor || '';
+      else if (e.includes('acabamento')) data.acabamento = step.valor || '';
+      else if (e.includes('fase final') || e.includes('final')) data.faseFinal = step.valor || '';
+    });
 
     // Gerar SEMPRE a URL do QR Code apontando exclusivamente para a página pública de FOTOS
     if (data.id) {
@@ -199,6 +222,23 @@ const FichaForm = (() => {
         el.value = Security.sanitizeHTML(String(data[key]));
       }
     }
+
+    // 5. Fluxo de Produção maleável
+    if (Array.isArray(data.fluxoProducao) && data.fluxoProducao.length > 0) {
+      currentFlowSteps = JSON.parse(JSON.stringify(data.fluxoProducao));
+    } else {
+      // Fallback para campos individuais antigos
+      currentFlowSteps = [
+        { etapa: 'Corte', valor: data.corte || '' },
+        { etapa: 'Bordado / Silk', valor: data.bordadoSilk || '' },
+        { etapa: 'Confecção', valor: data.confeccao || '' },
+        { etapa: 'Lavanderia', valor: data.lavanderia || '' },
+        { etapa: 'Lacre Lavanderia', valor: data.lacreLavanderia || '' },
+        { etapa: 'Acabamento', valor: data.acabamento || '' },
+        { etapa: 'Fase Final', valor: data.faseFinal || '' }
+      ];
+    }
+    renderFlowSteps();
 
     // Status de aprovação
     if (data.statusAprovacao) {
@@ -354,6 +394,117 @@ const FichaForm = (() => {
     container.appendChild(row);
   }
 
+  // ═══════════════ 5. GERENCIAMENTO DO FLUXO DE PRODUÇÃO ═══════════════
+
+  /**
+   * Renderiza a lista interativa e reordenável do Fluxo de Produção
+   */
+  function renderFlowSteps() {
+    const container = document.getElementById('flow-steps-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    currentFlowSteps.forEach((step, index) => {
+      const row = document.createElement('div');
+      row.className = 'flow-step-row';
+      row.innerHTML = `
+        <div class="flow-step-order">${index + 1}</div>
+        <div class="flow-step-controls">
+          <button type="button" class="flow-step-btn btn-step-up" data-index="${index}" ${index === 0 ? 'disabled' : ''} title="Mover para cima">▲</button>
+          <button type="button" class="flow-step-btn btn-step-down" data-index="${index}" ${index === currentFlowSteps.length - 1 ? 'disabled' : ''} title="Mover para baixo">▼</button>
+        </div>
+        <input type="text" list="flow-step-presets" class="form-input flow-step-name-input" placeholder="Nome da Etapa" value="${Security.sanitizeHTML(step.etapa)}">
+        <input type="text" class="form-input flow-step-value-input" placeholder="Fornecedor / Local / Observações" value="${Security.sanitizeHTML(step.valor)}">
+        <button type="button" class="btn btn--ghost btn--icon flow-step-remove" data-index="${index}" title="Remover Etapa">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      `;
+
+      // Eventos de digitação nos inputs
+      const nameInput = row.querySelector('.flow-step-name-input');
+      const valInput = row.querySelector('.flow-step-value-input');
+
+      nameInput.addEventListener('input', () => {
+        currentFlowSteps[index].etapa = nameInput.value;
+      });
+      valInput.addEventListener('input', () => {
+        currentFlowSteps[index].valor = valInput.value;
+      });
+
+      // Botão Subir (▲)
+      row.querySelector('.btn-step-up').addEventListener('click', () => {
+        syncFlowInputs();
+        if (index > 0) {
+          const temp = currentFlowSteps[index];
+          currentFlowSteps[index] = currentFlowSteps[index - 1];
+          currentFlowSteps[index - 1] = temp;
+          renderFlowSteps();
+          triggerAutoSave();
+        }
+      });
+
+      // Botão Descer (▼)
+      row.querySelector('.btn-step-down').addEventListener('click', () => {
+        syncFlowInputs();
+        if (index < currentFlowSteps.length - 1) {
+          const temp = currentFlowSteps[index];
+          currentFlowSteps[index] = currentFlowSteps[index + 1];
+          currentFlowSteps[index + 1] = temp;
+          renderFlowSteps();
+          triggerAutoSave();
+        }
+      });
+
+      // Botão Remover (✕)
+      row.querySelector('.flow-step-remove').addEventListener('click', () => {
+        syncFlowInputs();
+        currentFlowSteps.splice(index, 1);
+        renderFlowSteps();
+        triggerAutoSave();
+      });
+
+      container.appendChild(row);
+    });
+  }
+
+  /**
+   * Sincroniza os valores atuais dos inputs na memória
+   */
+  function syncFlowInputs() {
+    const container = document.getElementById('flow-steps-container');
+    if (!container) return;
+    const rows = container.querySelectorAll('.flow-step-row');
+    rows.forEach((row, i) => {
+      if (currentFlowSteps[i]) {
+        const nameInput = row.querySelector('.flow-step-name-input');
+        const valInput = row.querySelector('.flow-step-value-input');
+        if (nameInput) currentFlowSteps[i].etapa = nameInput.value.trim();
+        if (valInput) currentFlowSteps[i].valor = valInput.value.trim();
+      }
+    });
+  }
+
+  /**
+   * Adiciona uma nova etapa ao fluxo de produção
+   */
+  function addFlowStep(etapa = '', valor = '') {
+    syncFlowInputs();
+    currentFlowSteps.push({ etapa, valor });
+    renderFlowSteps();
+    triggerAutoSave();
+  }
+
+  /**
+   * Configura eventos do Fluxo de Produção
+   */
+  function setupFlowStepEvents() {
+    const addBtn = document.getElementById('btn-add-flow-step');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => addFlowStep());
+    }
+  }
+
   /**
    * Configura eventos das tabelas de medidas
    */
@@ -427,22 +578,6 @@ const FichaForm = (() => {
           el.classList.remove('error');
           const errorEl = el.parentElement.querySelector('.form-error');
           if (errorEl) errorEl.classList.remove('visible');
-        }
-      });
-    });
-
-    // Campos URL
-    const urlFields = ['field-link-acesso', 'field-qr-corte', 'field-qr-anexos', 'field-qr-feedback'];
-    urlFields.forEach(fieldId => {
-      const el = document.getElementById(fieldId);
-      if (!el) return;
-
-      el.addEventListener('blur', () => {
-        const val = el.value.trim();
-        if (val && !Security.validateURL(val)) {
-          el.classList.add('error');
-        } else {
-          el.classList.remove('error');
         }
       });
     });
@@ -537,6 +672,10 @@ const FichaForm = (() => {
       }
     }
 
+    // Resetar etapas do fluxo de produção para as 7 etapas padrão
+    currentFlowSteps = JSON.parse(JSON.stringify(DEFAULT_FLOW_STEPS));
+    renderFlowSteps();
+
     // Limpar status
     const radios = document.querySelectorAll('input[name="status-aprovacao"]');
     radios.forEach(r => r.checked = false);
@@ -619,10 +758,6 @@ const FichaForm = (() => {
   }
 
   /**
-   * Retorna o ID da ficha atual (se editando)
-   * @returns {string|null}
-   */
-  /**
    * Configura os eventos de upload e arrastar-e-soltar de foto
    */
   function setupPhotoUploadEvents() {
@@ -669,13 +804,15 @@ const FichaForm = (() => {
   function handleMultiplePhotosUpload(files) {
     if (!files || files.length === 0) return;
 
-    if (currentFotos.length + files.length > 3) {
-      alert('Limite atingido: você pode carregar no máximo 3 fotos por ficha técnica.');
+    const MAX_PHOTOS = 6;
+
+    if (currentFotos.length + files.length > MAX_PHOTOS) {
+      alert(`Limite atingido: você pode carregar no máximo ${MAX_PHOTOS} fotos por ficha técnica.`);
       return;
     }
 
     let loadedCount = 0;
-    const filesToProcess = files.slice(0, 3 - currentFotos.length);
+    const filesToProcess = files.slice(0, MAX_PHOTOS - currentFotos.length);
 
     filesToProcess.forEach(file => {
       if (file.type && !file.type.startsWith('image/')) {
@@ -686,54 +823,22 @@ const FichaForm = (() => {
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          // Redimensionar no Canvas para garantir peso super baixo (máx 300px, JPEG 0.5)
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+        // Enviar foto na qualidade original (armazenamento via Google Drive)
+        currentFotos.push(e.target.result);
+        loadedCount++;
 
-          const MAX_DIM = 300;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_DIM) {
-              height = Math.round(height * (MAX_DIM / width));
-              width = MAX_DIM;
-            }
-          } else {
-            if (height > MAX_DIM) {
-              width = Math.round(width * (MAX_DIM / height));
-              height = MAX_DIM;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Exportar como JPEG super comprimido para acomodar até 3 fotos sob 30KB
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
-
-          currentFotos.push(compressedBase64);
-          loadedCount++;
-
-          if (loadedCount === filesToProcess.length) {
-            renderPhotosPreviews();
-            triggerAutoSave();
-          }
-        };
-
-        img.onerror = function() {
-          alert(`Falha ao processar o arquivo "${file.name}". Certifique-se de que é uma imagem válida.`);
-          loadedCount++;
-          if (loadedCount === filesToProcess.length) {
-            renderPhotosPreviews();
-            triggerAutoSave();
-          }
-        };
-
-        img.src = e.target.result;
+        if (loadedCount === filesToProcess.length) {
+          renderPhotosPreviews();
+          triggerAutoSave();
+        }
+      };
+      reader.onerror = function() {
+        alert(`Falha ao processar o arquivo "${file.name}". Certifique-se de que é uma imagem válida.`);
+        loadedCount++;
+        if (loadedCount === filesToProcess.length) {
+          renderPhotosPreviews();
+          triggerAutoSave();
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -759,7 +864,7 @@ const FichaForm = (() => {
     }
 
     if (placeholder) {
-      if (currentFotos.length >= 3) {
+      if (currentFotos.length >= 6) {
         placeholder.style.display = 'none';
       } else {
         placeholder.style.display = 'flex';
@@ -828,6 +933,8 @@ const FichaForm = (() => {
     validate,
     getCurrentId,
     addColorCombo,
+    addFlowStep,
+    renderFlowSteps,
     updateAllQRPreviews
   };
 })();

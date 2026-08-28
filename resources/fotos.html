@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>LLAMENINA — Fotos da Peça</title>
+  <title>LLA FICHA — Fotos da Peça</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
-      color: #e0e0e0;
+      background: linear-gradient(135deg, #15060b 0%, #2e0813 50%, #15060b 100%);
+      color: #f5f2f4;
       min-height: 100vh;
       padding: 16px;
     }
@@ -21,19 +21,28 @@
       text-align: center;
       margin-bottom: 24px;
       padding: 20px 16px;
-      background: rgba(255,255,255,0.05);
+      background: rgba(92, 9, 32, 0.25);
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(205, 168, 97, 0.2);
       backdrop-filter: blur(10px);
     }
 
+    .header__logo-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      object-fit: contain;
+      box-shadow: 0 4px 14px rgba(92, 9, 32, 0.5);
+    }
+
     .header__brand {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 3px;
-      color: #f0c040;
-      font-weight: 600;
-      margin-bottom: 8px;
+      color: #cda861;
+      font-weight: 700;
+      margin-bottom: 6px;
     }
 
     .header__title {
@@ -188,7 +197,8 @@
 <body>
 
   <div class="header">
-    <div class="header__brand">LLAMENINA</div>
+    <img src="img/logo.png" class="header__logo-img" alt="Logo LLA FICHA">
+    <div class="header__brand">LLA FICHA</div>
     <div class="header__title" id="page-title">Fotos da Peça</div>
     <div class="header__subtitle" id="page-subtitle">Carregando...</div>
   </div>
@@ -270,14 +280,14 @@
           infoBar.style.display = 'none';
         }
 
-        // Extrair fotos
+        // Extrair fotos (suporta URLs do Drive e base64 legado)
         let fotos = [];
         if (ficha.foto) {
           try {
             fotos = JSON.parse(ficha.foto);
           } catch (e) {
-            // Pode ser uma única URL string
-            if (typeof ficha.foto === 'string' && ficha.foto.startsWith('data:')) {
+            // Pode ser uma única URL ou string base64
+            if (typeof ficha.foto === 'string' && (ficha.foto.startsWith('data:') || ficha.foto.startsWith('http'))) {
               fotos = [ficha.foto];
             }
           }
@@ -295,9 +305,11 @@
         // Renderizar grid de fotos
         let html = '<div class="photos-grid">';
         fotos.forEach(function(fotoSrc, index) {
+          // Suportar tanto URLs do Drive quanto base64 legado
+          const imgSrc = fotoSrc;
           html += `
             <div class="photo-card">
-              <img src="${fotoSrc}" alt="Foto ${index + 1}" onclick="openFullscreen(this.src)">
+              <img src="${imgSrc}" alt="Foto ${index + 1}" loading="lazy" onclick="openFullscreen(this.src)">
               <div class="photo-card__label">Foto ${index + 1} de ${fotos.length}</div>
             </div>`;
         });

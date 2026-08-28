@@ -7,7 +7,7 @@ const PrintModule = (() => {
   'use strict';
 
   /**
-   * Gera e exibe o layout de impressão
+   * Gera e exibe o layout de impressão A5
    * @param {Object} data - Dados da ficha coletados do formulário
    * @param {HTMLElement} [container] - Container de destino
    */
@@ -17,171 +17,176 @@ const PrintModule = (() => {
 
     const s = Security.sanitizeHTML; // Alias para brevidade
 
-    let printFotos = [];
-    if (data.foto) {
-      try {
-        const parsed = JSON.parse(data.foto);
-        if (Array.isArray(parsed)) {
-          printFotos = parsed;
-        } else {
-          printFotos = [data.foto];
-        }
-      } catch (e) {
-        printFotos = [data.foto];
-      }
+    // Processar etapas do Fluxo de Produção (maleável)
+    let flowSteps = [];
+    if (Array.isArray(data.fluxoProducao) && data.fluxoProducao.length > 0) {
+      flowSteps = data.fluxoProducao;
+    } else {
+      // Fallback para campos tradicionais
+      flowSteps = [
+        { etapa: 'Corte', valor: data.corte || '' },
+        { etapa: 'Bordado/Silk', valor: data.bordadoSilk || '' },
+        { etapa: 'Confecção', valor: data.confeccao || '' },
+        { etapa: 'Lavanderia', valor: data.lavanderia || '' },
+        { etapa: 'Lacre Lavanderia', valor: data.lacreLavanderia || '' },
+        { etapa: 'Acabamento', valor: data.acabamento || '' },
+        { etapa: 'Fase Final', valor: data.faseFinal || '' }
+      ];
+    }
+
+    // Processar observações em parágrafos separados
+    let obsParagraphs = [];
+    if (data.obsCostura) {
+      obsParagraphs = String(data.obsCostura)
+        .split(/\r?\n+/)
+        .map(p => p.trim())
+        .filter(Boolean);
     }
 
     target.innerHTML = `
-      <!-- ═══ HEADER ═══ -->
-      <div class="print-header print-no-break">
-        <div class="print-header__brand">
-          <div class="print-header__logo">L</div>
-          <div>
-            <div class="print-header__title">LLAMENINA</div>
-            <div class="print-header__subtitle">Ficha Técnica de Vestuário</div>
-          </div>
-        </div>
-        <div class="print-header__meta">
-          <div class="print-header__ref">Ref: ${s(data.referencia || '—')}</div>
-          <div>OP: ${s(data.op || '—')}</div>
-          <div>${new Date().toLocaleDateString('pt-BR')}</div>
-        </div>
-      </div>
+      <div class="print-sheet">
+        <div class="print-body-content">
 
-      <!-- ═══ CABEÇALHO ═══ -->
-      <div class="print-section print-no-break">
-        <div class="print-section__title">Identificação</div>
-        <div class="print-grid">
-          <div class="print-field">
-            <span class="print-field__label">Modelo:</span>
-            <span class="print-field__value">${s(data.modelo || '—')}</span>
+          <!-- ═══ HEADER ═══ -->
+          <div class="print-header print-no-break">
+            <div class="print-header__brand">
+              <img src="img/logo.png" class="print-header__logo-img" alt="LLA FICHA">
+              <div>
+                <div class="print-header__title">LLA FICHA</div>
+                <div class="print-header__subtitle">Ficha Interna de Vestuário</div>
+              </div>
+            </div>
+            <div class="print-header__meta">
+              <div class="print-header__ref">REF: <span class="print-header__ref-val">${s(data.referencia || '—')}</span></div>
+              <div>OP: <span class="print-header__op-val">${s(data.op || '—')}</span></div>
+              <div>${new Date().toLocaleDateString('pt-BR')}</div>
+            </div>
           </div>
-          <div class="print-field">
-            <span class="print-field__label">Ref:</span>
-            <span class="print-field__value">${s(data.referencia || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Tecido:</span>
-            <span class="print-field__value">${s(data.tecido || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Composição:</span>
-            <span class="print-field__value">${s(data.composicao || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">OP:</span>
-            <span class="print-field__value">${s(data.op || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Modelista:</span>
-            <span class="print-field__value">${s(data.modelista || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Pilotista:</span>
-            <span class="print-field__value">${s(data.pilotista || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Cor Linha:</span>
-            <span class="print-field__value">${s(data.corLinha || '—')}</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- ═══ FLUXO DE PRODUÇÃO ═══ -->
-      <div class="print-section print-no-break">
-        <div class="print-section__title">Fluxo de Produção</div>
-        <div class="print-grid print-grid--3cols">
-          <div class="print-field">
-            <span class="print-field__label">1. Corte:</span>
-            <span class="print-field__value">${s(data.corte || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">2. Bordado/Silk:</span>
-            <span class="print-field__value">${s(data.bordadoSilk || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">3. Confecção:</span>
-            <span class="print-field__value">${s(data.confeccao || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">4. Lavanderia:</span>
-            <span class="print-field__value">${s(data.lavanderia || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">Lacre:</span>
-            <span class="print-field__value">${s(data.lacreLavanderia || '—')}</span>
-          </div>
-          <div class="print-field">
-            <span class="print-field__label">5. Acabamento:</span>
-            <span class="print-field__value">${s(data.acabamento || '—')}</span>
-          </div>
-          <div class="print-field print-field--full">
-            <span class="print-field__label">6. Fase Final:</span>
-            <span class="print-field__value">${s(data.faseFinal || '—')}</span>
-          </div>
-        </div>
-      </div>
+          <!-- ═══ 4. IDENTIFICAÇÃO + 7. QR CODE LADO A LADO ═══ -->
+          <div class="print-id-wrapper print-no-break">
+            <div class="print-section print-id-section">
+              <div class="print-section__title">Identificação da Peça</div>
+              <div class="print-grid">
+                <!-- Linha 1: Modelo / Pilotista -->
+                <div class="print-field">
+                  <span class="print-field__label">Modelo:</span>
+                  <span class="print-field__value">${s(data.modelo || '—')}</span>
+                </div>
+                <div class="print-field">
+                  <span class="print-field__label">Pilotista:</span>
+                  <span class="print-field__value">${s(data.pilotista || '—')}</span>
+                </div>
 
+                <!-- Linha 2: REF / Modelista -->
+                <div class="print-field">
+                  <span class="print-field__label">Ref:</span>
+                  <span class="print-field__value">${s(data.referencia || '—')}</span>
+                </div>
+                <div class="print-field">
+                  <span class="print-field__label">Modelista:</span>
+                  <span class="print-field__value">${s(data.modelista || '—')}</span>
+                </div>
 
+                <!-- Linha 3: OP / Cor Linha -->
+                <div class="print-field">
+                  <span class="print-field__label">OP:</span>
+                  <span class="print-field__value">${s(data.op || '—')}</span>
+                </div>
+                <div class="print-field">
+                  <span class="print-field__label">Cor Linha:</span>
+                  <span class="print-field__value">${s(data.corLinha || '—')}</span>
+                </div>
 
-      <!-- ═══ TABELA MEDIDAS P/M/G ═══ -->
-      ${generateMeasureTableHTML('Medidas (P ao G)', data.medidasPMGTitulo, data.medidasPMG, ['P', 'M', 'G'])}
+                <!-- Linha 4: Tecido / Composição -->
+                <div class="print-field">
+                  <span class="print-field__label">Tecido:</span>
+                  <span class="print-field__value">${s(data.tecido || '—')}</span>
+                </div>
+                <div class="print-field">
+                  <span class="print-field__label">Composição:</span>
+                  <span class="print-field__value">${s(data.composicao || '—')}</span>
+                </div>
+              </div>
+            </div>
 
-      <!-- ═══ TABELA MEDIDAS NUMERAÇÃO ═══ -->
-      ${generateMeasureTableHTML('Medidas (Numeração)', data.medidasNumeracaoTitulo, data.medidasNumeracao, ['34', '36', '38', '40', '42', '44', '46'])}
-
-      <!-- ═══ OBSERVAÇÕES ═══ -->
-      ${data.obsCostura ? `
-      <div class="print-section print-no-break">
-        <div class="print-section__title">Observações</div>
-        <div class="print-obs">
-          <span class="print-obs__label">Costura:</span>
-          ${s(data.obsCostura)}
-        </div>
-      </div>
-      ` : ''}
-
-      <!-- ═══ COMBINAÇÕES DE CORES ═══ -->
-      ${data.combinacoesCores && data.combinacoesCores.length > 0 ? `
-      <div class="print-section print-no-break">
-        <div class="print-section__title">Bordado / Silk — Combinação de Cores</div>
-        <div class="print-combos">
-          ${data.combinacoesCores.map(c =>
-            `<span class="print-combo">Peça ${s(c.peca)} → Bordado ${s(c.bordado)}</span>`
-          ).join('')}
-        </div>
-      </div>
-      ` : ''}
-
-      <!-- ═══ STATUS ═══ -->
-      <div class="print-status print-no-break">
-        <div class="print-status__approval" style="display: flex; flex-direction: column; gap: 0.5mm; align-items: flex-start;">
-          <span style="font-weight: bold; font-size: 6.5pt; text-transform: uppercase;">Aprovado:</span>
-          <div style="display: flex; align-items: center;">
-            <span class="print-status__check ${data.statusAprovacao === 'aprovada' ? 'checked' : ''}"></span>&nbsp;SIM
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <span class="print-status__check ${data.statusAprovacao === 'reprovada' ? 'checked' : ''}"></span>&nbsp;NÃO
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <span>Resp: ${s(data.responsavelAprovacao || '_______________')}</span>
+            <!-- QR Code ao lado da Identificação (Topo da folha) -->
+            ${data.qrCorteUrl ? `
+            <div class="print-id-qr">
+              <div class="print-id-qr__label">QR Fotos</div>
+              <div class="print-qr-peca-el"></div>
+            </div>
+            ` : `
+            <div class="print-id-qr" style="opacity: 0.3;">
+              <div class="print-id-qr__label">QR Fotos</div>
+              <div style="font-size: 5pt; text-align: center; color: #888;">Sem fotos</div>
+            </div>
+            `}
           </div>
-        </div>
-        <div class="print-status__meta" style="align-self: flex-end;">
-          Data: ${s(data.dataAprovacao || new Date().toLocaleDateString('pt-BR'))}
-        </div>
-      </div>
 
-        <!-- ═══ QR CODES ═══ -->
-        <div class="print-qr-section print-no-break">
-          ${data.qrCorteUrl ? `
-          <div class="print-qr-item">
-            <div class="print-qr-item__label">QR Fotos</div>
-            <div class="print-qr-peca-el"></div>
+          <!-- ═══ 5. FLUXO DE PRODUÇÃO (ORDEM MALEÁVEL) ═══ -->
+          <div class="print-section print-no-break">
+            <div class="print-section__title">Fluxo de Produção</div>
+            <div class="print-grid print-grid--flow">
+              ${flowSteps.map((step, idx) => `
+                <div class="print-field ${idx === flowSteps.length - 1 && flowSteps.length % 3 === 1 ? 'print-field--full' : ''}">
+                  <span class="print-field__label">${idx + 1}. ${s(step.etapa)}:</span>
+                  <span class="print-field__value">${s(step.valor || '—')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- ═══ TABELA MEDIDAS P/M/G ═══ -->
+          ${generateMeasureTableHTML('Medidas (P ao G)', data.medidasPMGTitulo, data.medidasPMG, ['P', 'M', 'G'])}
+
+          <!-- ═══ TABELA MEDIDAS NUMERAÇÃO ═══ -->
+          ${generateMeasureTableHTML('Medidas (Numeração)', data.medidasNumeracaoTitulo, data.medidasNumeracao, ['34', '36', '38', '40', '42', '44', '46'])}
+
+          <!-- ═══ 6. OBSERVAÇÕES (EM PARÁGRAFOS) ═══ -->
+          ${obsParagraphs.length > 0 ? `
+          <div class="print-section print-no-break">
+            <div class="print-section__title">Observações Importantes</div>
+            <div class="print-obs">
+              <span class="print-obs__label">Costura / Observações Gerais:</span>
+              ${obsParagraphs.map(p => `<div class="print-obs__p">${s(p)}</div>`).join('')}
+            </div>
           </div>
           ` : ''}
+
+          <!-- ═══ COMBINAÇÕES DE CORES ═══ -->
+          ${data.combinacoesCores && data.combinacoesCores.length > 0 ? `
+          <div class="print-section print-no-break">
+            <div class="print-section__title">Bordado / Silk — Combinação de Cores</div>
+            <div class="print-combos">
+              ${data.combinacoesCores.map(c =>
+                `<span class="print-combo"><span class="print-combo-label">Peça:</span> ${s(c.peca || '—')} → <span class="print-combo-label">Bordado:</span> ${s(c.bordado || '—')}</span>`
+              ).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+        </div><!-- /.print-body-content -->
+
+        <!-- ═══ RODAPÉ FIXO: VALIDAÇÃO / APROVAÇÃO ═══ -->
+        <div class="print-status print-no-break">
+          <div class="print-status__approval">
+            <span style="font-weight: 800; font-size: 6.8pt; text-transform: uppercase;">Aprovação:</span>
+            <span class="print-status__check ${data.statusAprovacao === 'aprovada' ? 'checked' : ''}"></span>&nbsp;SIM
+            &nbsp;&nbsp;
+            <span class="print-status__check ${data.statusAprovacao === 'reprovada' ? 'checked' : ''}"></span>&nbsp;NÃO
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <span>Resp: <span class="print-status__val">${s(data.responsavelAprovacao || '____________________')}</span></span>
+          </div>
+          <div class="print-status__meta">
+            Data: <span class="print-status__val">${s(data.dataAprovacao || new Date().toLocaleDateString('pt-BR'))}</span>
+          </div>
         </div>
+
+      </div><!-- /.print-sheet -->
     `;
 
-    // Gerar QR codes no container
+    // Gerar QR code no container
     generatePrintQRCodes(data, target);
   }
 
@@ -226,8 +231,8 @@ const PrintModule = (() => {
     }
 
     const qrConfig = {
-      width: 68,
-      height: 68,
+      width: 72,
+      height: 72,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
@@ -241,6 +246,7 @@ const PrintModule = (() => {
       const el = parent.querySelector(classSelector);
       if (el && url && Security.validateURL(url)) {
         try {
+          el.innerHTML = '';
           new QRCode(el, { ...qrConfig, text: url });
         } catch (e) {
           console.warn(`[Print] Falha ao gerar QR code para ${classSelector}:`, e);

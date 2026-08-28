@@ -107,33 +107,48 @@ ul, ol {
   gap: var(--space-3);
 }
 
-.app-header__logo {
-  width: 38px;
-  height: 38px;
+.app-header__logo-img {
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-brand-accent), var(--color-brand-accent-dark));
+  object-fit: contain;
+  box-shadow: 0 4px 14px rgba(92, 9, 32, 0.45);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.app-header__logo-img:hover {
+  transform: scale(1.05);
+}
+
+.app-header__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-brand-wine), var(--color-brand-wine-dark));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-lg);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-glow);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(92, 9, 32, 0.45);
   flex-shrink: 0;
 }
 
 .app-header__title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
+  color: #ffffff;
+  letter-spacing: 0.04em;
 }
 
 .app-header__subtitle {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
+  color: var(--color-brand-accent);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .app-header__actions {
