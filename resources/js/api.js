@@ -6,7 +6,7 @@
 const API = (() => {
   'use strict';
 
-  const REQUEST_TIMEOUT_MS = 15000; // 15 segundos
+  const REQUEST_TIMEOUT_MS = 45000; // 45 segundos (conservador para uploads de fotos ao Drive)
   const MAX_RETRIES = 2;
   const RETRY_DELAY_MS = 1500;
 
@@ -103,10 +103,13 @@ const API = (() => {
     } catch (error) {
       clearTimeout(timeoutId);
 
-      // Se foi timeout ou erro de rede, tentar retry
+      // Se foi timeout ou erro de rede, tentar retry APENAS para GET
+      // POST NÃO faz retry: o servidor pode ter processado com sucesso mas a
+      // resposta não chegou — reenviar causaria duplicação de dados
       if (
         (error.name === 'AbortError' || error.name === 'TypeError') &&
-        retryCount < MAX_RETRIES
+        retryCount < MAX_RETRIES &&
+        method === 'GET'
       ) {
         console.warn(`[API] Tentativa ${retryCount + 1} falhou. Retrying...`);
         await sleep(RETRY_DELAY_MS * (retryCount + 1));

@@ -182,6 +182,15 @@ function handleCreate(ficha) {
   const id = ficha.id || Utilities.getUuid();
   const now = new Date().toISOString();
   
+  // PROTEÇÃO CONTRA DUPLICAÇÃO: Se o ID já existe, redirecionar para update (upsert)
+  // Previne duplicação causada por retries automáticos, cliques duplos, etc.
+  const existingRow = findRowById(sheet, id);
+  if (existingRow !== -1) {
+    ficha.id = id;
+    logAudit('CREATE_UPSERT', id, 'ID já existente, redirecionando para update: ' + sanitize(ficha.modelo || ''));
+    return handleUpdate(ficha);
+  }
+  
   // Salvar fotos no Google Drive (alta qualidade)
   ficha = processAndUploadPhotos_(ficha, id);
   

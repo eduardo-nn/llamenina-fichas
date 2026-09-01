@@ -925,6 +925,16 @@ const FichaForm = (() => {
     return currentFichaId;
   }
 
+  /**
+   * Define o ID da ficha atual no formulário
+   * Usado para fixar o ID após a primeira tentativa de salvamento,
+   * garantindo que saves subsequentes usem 'update' em vez de 'create'
+   * @param {string} id
+   */
+  function setCurrentId(id) {
+    currentFichaId = id || null;
+  }
+
   return {
     init,
     collectData,
@@ -932,6 +942,7 @@ const FichaForm = (() => {
     clearForm,
     validate,
     getCurrentId,
+    setCurrentId,
     addColorCombo,
     addFlowStep,
     renderFlowSteps,

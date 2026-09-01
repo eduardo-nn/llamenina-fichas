@@ -9,10 +9,17 @@ const App = (() => {
   let currentView = 'list';
   let fichasCache = [];
 
+  // ── Versão do aplicativo (atualizar aqui a cada release) ──
+  const APP_VERSION = 'v1.1.0';
+
   /**
    * Inicializa a aplicação
    */
   function init() {
+    // Exibir versão no header
+    const versionEl = document.getElementById('app-version');
+    if (versionEl) versionEl.textContent = APP_VERSION;
+
     Config.init();
     FichaForm.init();
     setupEventListeners();
@@ -276,20 +283,41 @@ const App = (() => {
    * Handler do botão Salvar
    */
   async function handleSave() {
+    const saveBtn = document.getElementById('btn-save');
+
+    // Bloquear cliques duplicados: se já está salvando, ignorar
+    if (saveBtn && saveBtn.disabled) return;
+
+    // Desabilitar botão imediatamente para impedir cliques múltiplos
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.classList.add('loading');
+    }
+
     // Validar
     const validation = FichaForm.validate();
     if (!validation.valid) {
       showToast('Campos obrigatórios', validation.errors[0], 'warning');
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('loading');
+      }
       return;
     }
 
     const data = FichaForm.collectData();
-    const saveBtn = document.getElementById('btn-save');
 
-    // UI feedback
-    if (saveBtn) saveBtn.classList.add('loading');
+    // Capturar se é update ANTES de fixar o ID no formulário
+    const isUpdate = !!FichaForm.getCurrentId();
+
+    // Se é criação nova, fixar o ID gerado no formulário IMEDIATAMENTE
+    // Protege contra: se o save falhar/demorar e o usuário clicar Salvar de novo,
+    // o próximo collectData() usará o mesmo ID e será enviado como 'update'
+    if (!isUpdate && data.id) {
+      FichaForm.setCurrentId(data.id);
+    }
+
     try {
-      const isUpdate = !!FichaForm.getCurrentId();
       const result = await API.saveFicha(data, isUpdate);
       showToast(
         'Ficha salva!',
@@ -316,7 +344,10 @@ const App = (() => {
     } catch (error) {
       showToast('Erro ao salvar', error.message, 'error');
     } finally {
-      if (saveBtn) saveBtn.classList.remove('loading');
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('loading');
+      }
     }
   }
 
@@ -536,6 +567,7 @@ const App = (() => {
   }
 
   return {
+    VERSION: APP_VERSION,
     init,
     switchView,
     newFicha,
