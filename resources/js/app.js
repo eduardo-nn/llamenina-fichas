@@ -10,7 +10,7 @@ const App = (() => {
   let fichasCache = [];
 
   // ── Versão do aplicativo (atualizar aqui a cada release) ──
-  const APP_VERSION = 'v1.2.0';
+  const APP_VERSION = 'v1.3.0';
 
   /**
    * Inicializa a aplicação

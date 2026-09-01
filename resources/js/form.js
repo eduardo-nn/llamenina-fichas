@@ -34,7 +34,6 @@ const FichaForm = (() => {
     coresTecido: 'field-tecido-cores',
     composicao: 'field-composicao',
     corLinha: 'field-cor-linha',
-    lacreLavanderia: 'field-lacre-lavanderia',
     // Observações
     obsCostura: 'field-obs-costura',
     // Aprovação
@@ -108,7 +107,6 @@ const FichaForm = (() => {
       if (e.includes('corte')) data.corte = step.valor || '';
       else if (e.includes('bordado') || e.includes('silk')) data.bordadoSilk = step.valor || '';
       else if (e.includes('confec')) data.confeccao = step.valor || '';
-      else if (e.includes('lacre')) data.lacreLavanderia = step.valor || '';
       else if (e.includes('lavanderia')) data.lavanderia = step.valor || '';
       else if (e.includes('acabamento')) data.acabamento = step.valor || '';
       else if (e.includes('fase final') || e.includes('final')) data.faseFinal = step.valor || '';
