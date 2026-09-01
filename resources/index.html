@@ -156,14 +156,24 @@
                 <input type="text" id="field-cor-linha" class="form-input" placeholder="Cor e referência da linha">
               </div>
 
-              <!-- Par 4: Tecido / Composição -->
+              <!-- Par 4: Tecido / Cores Tecido -->
               <div class="form-group">
-                <label class="form-label" for="field-tecido">Tecido / Malha</label>
-                <input type="text" id="field-tecido" class="form-input" placeholder="Tipo de tecido ou malha">
+                <label class="form-label" for="field-tecido">Tecido / Malha / Renda</label>
+                <input type="text" id="field-tecido" class="form-input" placeholder="Tipo de tecido, malha ou renda">
               </div>
+              <div class="form-group">
+                <label class="form-label" for="field-tecido-cores">Cores (Tecido / Malha / Renda)</label>
+                <input type="text" id="field-tecido-cores" class="form-input" placeholder="Cores que serão utilizadas (ex: Branco, Preto, Marinho)">
+              </div>
+
+              <!-- Par 5: Composição / Lacre Lavanderia -->
               <div class="form-group">
                 <label class="form-label" for="field-composicao">Composição</label>
                 <input type="text" id="field-composicao" class="form-input" placeholder="Composição do tecido">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-lacre-lavanderia">Lacre Lavanderia <span style="font-weight: normal; font-size: var(--font-size-xs); color: var(--color-text-muted);">(Complemento)</span></label>
+                <input type="text" id="field-lacre-lavanderia" class="form-input" placeholder="Nº do lacre ao retornar da lavanderia">
               </div>
             </div>
           </div>
@@ -188,7 +198,6 @@
               <option value="Bordado / Silk">
               <option value="Confecção">
               <option value="Lavanderia">
-              <option value="Lacre Lavanderia">
               <option value="Acabamento">
               <option value="Fase Final">
               <option value="Estamparia">

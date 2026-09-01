@@ -22,13 +22,12 @@ const PrintModule = (() => {
     if (Array.isArray(data.fluxoProducao) && data.fluxoProducao.length > 0) {
       flowSteps = data.fluxoProducao;
     } else {
-      // Fallback para campos tradicionais
+      // Fallback para campos tradicionais (6 etapas de produção)
       flowSteps = [
         { etapa: 'Corte', valor: data.corte || '' },
         { etapa: 'Bordado/Silk', valor: data.bordadoSilk || '' },
         { etapa: 'Confecção', valor: data.confeccao || '' },
         { etapa: 'Lavanderia', valor: data.lavanderia || '' },
-        { etapa: 'Lacre Lavanderia', valor: data.lacreLavanderia || '' },
         { etapa: 'Acabamento', valor: data.acabamento || '' },
         { etapa: 'Fase Final', valor: data.faseFinal || '' }
       ];
@@ -98,14 +97,24 @@ const PrintModule = (() => {
                   <span class="print-field__value">${s(data.corLinha || '—')}</span>
                 </div>
 
-                <!-- Linha 4: Tecido / Composição -->
+                <!-- Linha 4: Tecido / Cores Tecido -->
                 <div class="print-field">
                   <span class="print-field__label">Tecido:</span>
                   <span class="print-field__value">${s(data.tecido || '—')}</span>
                 </div>
                 <div class="print-field">
+                  <span class="print-field__label">Cores:</span>
+                  <span class="print-field__value">${s(data.coresTecido || '—')}</span>
+                </div>
+
+                <!-- Linha 5: Composição / Lacre Lavanderia -->
+                <div class="print-field">
                   <span class="print-field__label">Composição:</span>
                   <span class="print-field__value">${s(data.composicao || '—')}</span>
+                </div>
+                <div class="print-field">
+                  <span class="print-field__label">Lacre Lav.:</span>
+                  <span class="print-field__value">${s(data.lacreLavanderia || '—')}</span>
                 </div>
               </div>
             </div>

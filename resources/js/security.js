@@ -108,6 +108,7 @@ const Security = (() => {
       modelista: 100,
       pilotista: 100,
       tecido: 200,
+      coresTecido: 300,
       composicao: 200,
       corLinha: 200,
       corte: 200,

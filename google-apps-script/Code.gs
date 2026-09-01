@@ -59,9 +59,10 @@ const COLUMNS = {
   RESPONSAVEL: 30,
   DATA_APROVACAO: 31,
   ATIVO: 32,
+  CORES_TECIDO: 33,
 };
 
-const TOTAL_COLUMNS = 32;
+const TOTAL_COLUMNS = 33;
 
 // ═══════════════ HANDLERS PRINCIPAIS ═══════════════
 
@@ -393,7 +394,8 @@ function buildRow(id, createdAt, updatedAt, ficha) {
     s(ficha.statusAprovacao || 'pendente'),
     s(ficha.responsavelAprovacao || ''),
     s(ficha.dataAprovacao || ''),
-    'TRUE'
+    'TRUE',
+    s(ficha.coresTecido || '')
   ];
 }
 
@@ -434,6 +436,7 @@ function rowToObject(row) {
     statusAprovacao: row[COLUMNS.STATUS - 1],
     responsavelAprovacao: row[COLUMNS.RESPONSAVEL - 1],
     dataAprovacao: row[COLUMNS.DATA_APROVACAO - 1],
+    coresTecido: (row.length >= 33 && row[COLUMNS.CORES_TECIDO - 1] !== undefined) ? row[COLUMNS.CORES_TECIDO - 1] : '',
   };
 }
 
@@ -483,7 +486,7 @@ function getOrCreateSheet(name) {
         'Medidas PMG (JSON)', 'Título Medidas Num', 'Medidas Num (JSON)',
         'Obs Costura', 'Combinações Cores (JSON)', 'QR Corte URL',
         'QR Anexos URL', 'QR Feedback URL', 'Status', 'Responsável',
-        'Data Aprovação', 'Ativo'
+        'Data Aprovação', 'Ativo', 'Cores Tecido'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');

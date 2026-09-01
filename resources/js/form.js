@@ -10,13 +10,12 @@ const FichaForm = (() => {
   let autoSaveTimer = null;
   let currentFotos = [];
 
-  // Etapas padrão do fluxo de produção
+  // Etapas padrão do fluxo de produção (6 etapas padrão de confecção)
   const DEFAULT_FLOW_STEPS = [
     { etapa: 'Corte', valor: '' },
     { etapa: 'Bordado / Silk', valor: '' },
     { etapa: 'Confecção', valor: '' },
     { etapa: 'Lavanderia', valor: '' },
-    { etapa: 'Lacre Lavanderia', valor: '' },
     { etapa: 'Acabamento', valor: '' },
     { etapa: 'Fase Final', valor: '' }
   ];
@@ -32,8 +31,10 @@ const FichaForm = (() => {
     modelista: 'field-modelista',
     pilotista: 'field-pilotista',
     tecido: 'field-tecido',
+    coresTecido: 'field-tecido-cores',
     composicao: 'field-composicao',
     corLinha: 'field-cor-linha',
+    lacreLavanderia: 'field-lacre-lavanderia',
     // Observações
     obsCostura: 'field-obs-costura',
     // Aprovação
@@ -233,7 +234,6 @@ const FichaForm = (() => {
         { etapa: 'Bordado / Silk', valor: data.bordadoSilk || '' },
         { etapa: 'Confecção', valor: data.confeccao || '' },
         { etapa: 'Lavanderia', valor: data.lavanderia || '' },
-        { etapa: 'Lacre Lavanderia', valor: data.lacreLavanderia || '' },
         { etapa: 'Acabamento', valor: data.acabamento || '' },
         { etapa: 'Fase Final', valor: data.faseFinal || '' }
       ];
