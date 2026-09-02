@@ -234,12 +234,79 @@ const API = (() => {
     }
   }
 
+  // ═══════════════ MÉTODOS DE FEEDBACK ═══════════════
+
+  /**
+   * Lista todos os feedbacks registrados
+   * @returns {Promise<Object>}
+   */
+  async function listFeedbacks() {
+    return request('GET', null, { action: 'listFeedbacks' });
+  }
+
+  /**
+   * Lista feedbacks de uma ficha específica
+   * @param {string} fichaId
+   * @returns {Promise<Object>}
+   */
+  async function getFeedbacksByFicha(fichaId) {
+    return request('GET', null, {
+      action: 'getFeedbacksByFicha',
+      fichaId: Security.stripHTML(fichaId)
+    });
+  }
+
+  /**
+   * Atualiza o status e anotações internas de um feedback
+   * @param {string} id
+   * @param {string} status
+   * @param {string} [obsInterna]
+   * @returns {Promise<Object>}
+   */
+  async function updateFeedbackStatus(id, status, obsInterna = '') {
+    return request('POST', {
+      action: 'updateFeedbackStatus',
+      id: Security.stripHTML(id),
+      status: Security.stripHTML(status),
+      obsInterna: Security.stripHTML(obsInterna)
+    });
+  }
+
+  /**
+   * Envia um novo feedback
+   * @param {Object} feedbackData
+   * @returns {Promise<Object>}
+   */
+  async function submitFeedback(feedbackData) {
+    return request('POST', {
+      action: 'submitFeedback',
+      feedback: feedbackData
+    });
+  }
+
+  /**
+   * Exclui um feedback
+   * @param {string} id
+   * @returns {Promise<Object>}
+   */
+  async function deleteFeedback(id) {
+    return request('POST', {
+      action: 'deleteFeedback',
+      id: Security.stripHTML(id)
+    });
+  }
+
   return {
     saveFicha,
     listFichas,
     searchFichas,
     getFicha,
     deleteFicha,
+    listFeedbacks,
+    getFeedbacksByFicha,
+    updateFeedbackStatus,
+    submitFeedback,
+    deleteFeedback,
     testConnection,
     APIError
   };

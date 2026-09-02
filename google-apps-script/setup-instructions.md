@@ -5,7 +5,8 @@
 1. Acesse [Google Sheets](https://sheets.google.com)
 2. Crie uma nova planilha em branco
 3. Nomeie como: **"LLAMENINA — Fichas Técnicas"**
-4. As abas "Fichas" e "Logs" serão criadas automaticamente pelo script na primeira execução
+4. As abas **"Fichas"**, **"Feedbacks"** e **"Logs"** serão criadas automaticamente pelo script na primeira execução.
+5. As pastas no Google Drive (**"LLAMENINA_Fotos_Fichas"** para as fotos da ficha e **"LLAMENINA_Fotos_Feedbacks"** para fotos de defeitos/feedbacks) serão criadas automaticamente.
 
 ---
 

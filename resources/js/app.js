@@ -1,16 +1,19 @@
 /* ═══════════════════════════════════════════════════════════════
    LLAMENINA — Fichas Técnicas — App Module (Orquestrador)
-   Inicialização, roteamento de views e controle global
+   Inicialização, roteamento de views, gestão de feedbacks e controle global
    ═══════════════════════════════════════════════════════════════ */
 
 const App = (() => {
   'use strict';
 
-  let currentView = 'list';
+  let currentView = 'list'; // 'list' | 'form' | 'feedbacks'
+  let currentTab = 'fichas'; // 'fichas' | 'feedbacks'
   let fichasCache = [];
+  let feedbacksCache = [];
+  let activeFeedbackFilter = 'todos'; // 'todos' | 'novo' | 'em_analise' | 'resolvido'
 
   // ── Versão do aplicativo (atualizar aqui a cada release) ──
-  const APP_VERSION = 'v1.3.0';
+  const APP_VERSION = 'v1.4.0';
 
   /**
    * Inicializa a aplicação
@@ -24,6 +27,7 @@ const App = (() => {
     FichaForm.init();
     setupEventListeners();
     setupConfigModal();
+    setupFeedbackModal();
 
     // Verificar se há parâmetro ID na URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -44,6 +48,8 @@ const App = (() => {
       } else {
         switchView('list');
         loadFichas();
+        // Carregar feedbacks em background para atualizar o badge de notificações
+        loadFeedbacks(false);
       }
     }
   }
@@ -51,6 +57,22 @@ const App = (() => {
   // ═══════════════ EVENT LISTENERS ═══════════════
 
   function setupEventListeners() {
+    // Abas principais do Header (Fichas / Feedbacks)
+    const tabFichas = document.getElementById('tab-fichas');
+    const tabFeedbacks = document.getElementById('tab-feedbacks');
+
+    if (tabFichas) {
+      tabFichas.addEventListener('click', () => {
+        switchTab('fichas');
+      });
+    }
+
+    if (tabFeedbacks) {
+      tabFeedbacks.addEventListener('click', () => {
+        switchTab('feedbacks');
+      });
+    }
+
     // Navegação
     const btnNewFicha = document.getElementById('btn-new-ficha');
     const btnBackToList = document.getElementById('btn-back-list');
@@ -58,17 +80,17 @@ const App = (() => {
 
     if (btnNewFicha) {
       btnNewFicha.addEventListener('click', () => {
+        switchTab('fichas');
         FichaForm.clearForm();
         switchView('form');
-        // Limpar parâmetros da URL ao criar nova ficha
         window.history.pushState({}, '', window.location.pathname);
       });
     }
 
     if (btnBackToList) {
       btnBackToList.addEventListener('click', () => {
+        switchTab('fichas');
         switchView('list');
-        // Limpar parâmetros da URL ao voltar
         window.history.pushState({}, '', window.location.pathname);
       });
     }
@@ -77,7 +99,7 @@ const App = (() => {
       btnConfig.addEventListener('click', showConfigModal);
     }
 
-    // Ações do formulário
+    // Ações do formulário de fichas
     const btnSave = document.getElementById('btn-save');
     const btnPrint = document.getElementById('btn-print');
     const btnClear = document.getElementById('btn-clear');
@@ -99,25 +121,70 @@ const App = (() => {
       });
     }
 
-    // Busca
+    // Busca de Fichas
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
       const debouncedSearch = Security.debounce(handleSearch, 400);
       searchInput.addEventListener('input', debouncedSearch);
     }
 
-    // Refresh
+    // Refresh de Fichas
     const btnRefresh = document.getElementById('btn-refresh');
     if (btnRefresh) {
       btnRefresh.addEventListener('click', loadFichas);
     }
+
+    // ── Feedbacks: Busca e Filtros ──
+    const feedbackSearchInput = document.getElementById('feedback-search-input');
+    if (feedbackSearchInput) {
+      const debouncedFeedbackSearch = Security.debounce(handleFeedbackSearch, 300);
+      feedbackSearchInput.addEventListener('input', debouncedFeedbackSearch);
+    }
+
+    const btnRefreshFeedbacks = document.getElementById('btn-refresh-feedbacks');
+    if (btnRefreshFeedbacks) {
+      btnRefreshFeedbacks.addEventListener('click', () => loadFeedbacks(true));
+    }
+
+    // Filtros por chips de status
+    document.querySelectorAll('[data-feedback-filter]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-feedback-filter]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeFeedbackFilter = chip.dataset.feedbackFilter;
+        renderFeedbacksList(feedbacksCache);
+      });
+    });
   }
 
-  // ═══════════════ VIEW MANAGEMENT ═══════════════
+  // ═══════════════ TAB & VIEW MANAGEMENT ═══════════════
 
   /**
-   * Alterna entre as views (list, form)
-   * @param {string} view - 'list' ou 'form'
+   * Alterna entre as abas principais (Fichas / Feedbacks)
+   * @param {'fichas'|'feedbacks'} tab
+   */
+  function switchTab(tab) {
+    currentTab = tab;
+
+    // Atualizar botões de abas no header
+    const tabFichas = document.getElementById('tab-fichas');
+    const tabFeedbacks = document.getElementById('tab-feedbacks');
+
+    if (tabFichas) tabFichas.classList.toggle('active', tab === 'fichas');
+    if (tabFeedbacks) tabFeedbacks.classList.toggle('active', tab === 'feedbacks');
+
+    if (tab === 'fichas') {
+      switchView('list');
+      loadFichas();
+    } else if (tab === 'feedbacks') {
+      switchView('feedbacks');
+      loadFeedbacks(true);
+    }
+  }
+
+  /**
+   * Alterna entre as views (list, form, feedbacks)
+   * @param {string} view - 'list', 'form' ou 'feedbacks'
    */
   function switchView(view) {
     currentView = view;
@@ -134,9 +201,13 @@ const App = (() => {
     // Atualizar título do header
     const subtitle = document.querySelector('.app-header__subtitle');
     if (subtitle) {
-      subtitle.textContent = view === 'form'
-        ? (FichaForm.getCurrentId() ? 'Editando Ficha' : 'Nova Ficha Técnica')
-        : 'Lista de Fichas Técnicas';
+      if (view === 'form') {
+        subtitle.textContent = FichaForm.getCurrentId() ? 'Editando Ficha' : 'Nova Ficha Técnica';
+      } else if (view === 'feedbacks') {
+        subtitle.textContent = 'Feedbacks de Produção & Qualidade';
+      } else {
+        subtitle.textContent = 'Lista de Fichas Técnicas';
+      }
     }
 
     // Scroll to top
@@ -259,7 +330,6 @@ const App = (() => {
    */
   async function loadFichaForEdit(fichaId) {
     try {
-      // Tentar do cache primeiro
       let ficha = fichasCache.find(f => f.id === fichaId);
 
       if (!ficha) {
@@ -269,6 +339,7 @@ const App = (() => {
 
       if (ficha) {
         FichaForm.fillForm(ficha);
+        switchTab('fichas');
         switchView('form');
         showToast('Ficha carregada', `${ficha.modelo} — ${ficha.referencia}`, 'success');
       }
@@ -277,7 +348,376 @@ const App = (() => {
     }
   }
 
-  // ═══════════════ HANDLERS ═══════════════
+  // ═══════════════ FEEDBACKS MANAGEMENT ═══════════════
+
+  /**
+   * Carrega todos os feedbacks do backend
+   * @param {boolean} showToastOnSuccess
+   */
+  async function loadFeedbacks(showToastOnSuccess = false) {
+    if (!Config.isConfigured()) {
+      renderFeedbacksList([]);
+      return;
+    }
+
+    const container = document.getElementById('feedbacks-list-container');
+    if (container && currentView === 'feedbacks') {
+      container.innerHTML = `
+        <div class="skeleton skeleton--card"></div>
+        <div class="skeleton skeleton--card"></div>
+      `;
+    }
+
+    try {
+      const result = await API.listFeedbacks();
+      feedbacksCache = result.feedbacks || [];
+      updateFeedbacksBadge();
+      renderFeedbacksList(feedbacksCache);
+      if (showToastOnSuccess) {
+        showToast('Feedbacks atualizados', `${feedbacksCache.length} ocorrência(s) registrada(s)`, 'success');
+      }
+    } catch (error) {
+      console.warn('[App] Falha ao carregar feedbacks:', error.message);
+      if (currentView === 'feedbacks') {
+        renderFeedbacksList([]);
+      }
+    }
+  }
+
+  /**
+   * Atualiza o badge numérico com a quantidade de feedbacks novos/pendentes
+   */
+  function updateFeedbacksBadge() {
+    const badge = document.getElementById('feedbacks-badge');
+    if (!badge) return;
+
+    const newCount = feedbacksCache.filter(fb => fb.status === 'novo' || fb.status === 'pendente' || !fb.status).length;
+
+    if (newCount > 0) {
+      badge.textContent = newCount;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /**
+   * Renderiza a lista de feedbacks no DOM
+   * @param {Array} feedbacks
+   */
+  function renderFeedbacksList(feedbacks) {
+    const container = document.getElementById('feedbacks-list-container');
+    if (!container) return;
+
+    // 1. Filtrar por status
+    let filtered = feedbacks;
+    if (activeFeedbackFilter === 'novo') {
+      filtered = filtered.filter(f => f.status === 'novo' || f.status === 'pendente' || !f.status);
+    } else if (activeFeedbackFilter === 'em_analise') {
+      filtered = filtered.filter(f => f.status === 'em_analise');
+    } else if (activeFeedbackFilter === 'resolvido') {
+      filtered = filtered.filter(f => f.status === 'resolvido');
+    }
+
+    // 2. Filtrar por busca se houver
+    const searchInput = document.getElementById('feedback-search-input');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (query) {
+      filtered = filtered.filter(f => {
+        const text = [f.modelo, f.referencia, f.op, f.parceiro, f.setor, f.tipo, f.descricao].join(' ').toLowerCase();
+        return text.includes(query);
+      });
+    }
+
+    // Atualizar contador
+    const countEl = document.getElementById('feedbacks-count');
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__icon">
+            <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="empty-state__title">Nenhum feedback encontrado</div>
+          <div class="empty-state__desc">Nenhuma ocorrência corresponde aos filtros selecionados.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const s = Security.sanitizeHTML;
+
+    container.innerHTML = '<div class="feedbacks-list">' +
+      filtered.map((fb, idx) => {
+        const urgencyClass = (fb.gravidade || '').toLowerCase().includes('urgente') ? 'urgente'
+          : (fb.gravidade || '').toLowerCase().includes('aten') ? 'atencao' : 'info';
+        
+        const statusClass = fb.status === 'resolvido' ? 'resolvido'
+          : fb.status === 'em_analise' ? 'em_analise' : 'novo';
+        
+        const statusLabel = fb.status === 'resolvido' ? '✓ Resolvido'
+          : fb.status === 'em_analise' ? '⏳ Em Análise' : '● Novo';
+
+        const dataFormatada = fb.timestamp ? new Date(fb.timestamp).toLocaleString('pt-BR') : '—';
+        const hasPhotos = Array.isArray(fb.fotos) && fb.fotos.length > 0;
+
+        return `
+          <div class="feedback-card" data-feedback-id="${s(fb.id)}" style="animation-delay: ${idx * 0.04}s">
+            <div class="feedback-card__top">
+              <div class="feedback-card__piece">
+                <span class="feedback-card__modelo">${s(fb.modelo || 'Peça sem modelo')}</span>
+                <span class="feedback-card__ref">REF: ${s(fb.referencia || '—')}</span>
+                ${fb.op ? `<span class="feedback-card__op">(OP: ${s(fb.op)})</span>` : ''}
+              </div>
+              <div class="feedback-card__badges">
+                <span class="badge badge--${urgencyClass}">${s(fb.gravidade || 'Informativo')}</span>
+                <span class="badge badge--${statusClass}">${statusLabel}</span>
+              </div>
+            </div>
+
+            <div class="feedback-card__partner-row">
+              <span>👤 <strong>${s(fb.parceiro || 'Parceiro')}</strong></span>
+              <span>📍 Setor: <strong>${s(fb.setor || 'Geral')}</strong></span>
+              <span>🏷️ Tipo: <strong>${s(fb.tipo || 'Observação')}</strong></span>
+            </div>
+
+            <div class="feedback-card__desc">
+              "${s(fb.descricao || '')}"
+            </div>
+
+            <div class="feedback-card__footer">
+              <span>🕒 ${dataFormatada}</span>
+              ${hasPhotos ? `<span style="color: var(--color-brand-accent); font-weight: 600;">📷 ${fb.fotos.length} foto(s) anexada(s)</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('') + '</div>';
+
+    // Click handler para abrir o modal de detalhes
+    container.querySelectorAll('.feedback-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.feedbackId;
+        openFeedbackDetailModal(id);
+      });
+    });
+  }
+
+  function handleFeedbackSearch() {
+    renderFeedbacksList(feedbacksCache);
+  }
+
+  /**
+   * Configura o modal de detalhes do feedback
+   */
+  function setupFeedbackModal() {
+    const modalOverlay = document.getElementById('feedback-modal-overlay');
+    const closeBtn = document.getElementById('feedback-modal-close');
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', hideFeedbackModal);
+    }
+
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) hideFeedbackModal();
+      });
+    }
+  }
+
+  function showFeedbackModal() {
+    const modalOverlay = document.getElementById('feedback-modal-overlay');
+    if (modalOverlay) modalOverlay.classList.add('active');
+  }
+
+  function hideFeedbackModal() {
+    const modalOverlay = document.getElementById('feedback-modal-overlay');
+    if (modalOverlay) modalOverlay.classList.remove('active');
+  }
+
+  /**
+   * Abre o modal com os detalhes completos do feedback
+   * @param {string} feedbackId
+   */
+  function openFeedbackDetailModal(feedbackId) {
+    const fb = feedbacksCache.find(f => f.id === feedbackId);
+    if (!fb) return;
+
+    const s = Security.sanitizeHTML;
+    const bodyEl = document.getElementById('feedback-modal-body');
+    const urgencyBadge = document.getElementById('fb-modal-urgency-badge');
+    const statusBadge = document.getElementById('fb-modal-status-badge');
+
+    if (!bodyEl) return;
+
+    // Configurar badges do cabeçalho do modal
+    const urgencyClass = (fb.gravidade || '').toLowerCase().includes('urgente') ? 'urgente'
+      : (fb.gravidade || '').toLowerCase().includes('aten') ? 'atencao' : 'info';
+    if (urgencyBadge) {
+      urgencyBadge.className = `badge badge--${urgencyClass}`;
+      urgencyBadge.textContent = fb.gravidade || 'Informativo';
+    }
+
+    const statusClass = fb.status === 'resolvido' ? 'resolvido'
+      : fb.status === 'em_analise' ? 'em_analise' : 'novo';
+    const statusLabel = fb.status === 'resolvido' ? '✓ Resolvido'
+      : fb.status === 'em_analise' ? '⏳ Em Análise' : '● Novo';
+    if (statusBadge) {
+      statusBadge.className = `badge badge--${statusClass}`;
+      statusBadge.textContent = statusLabel;
+    }
+
+    const dataFormatada = fb.timestamp ? new Date(fb.timestamp).toLocaleString('pt-BR') : '—';
+    const fotos = Array.isArray(fb.fotos) ? fb.fotos : [];
+
+    bodyEl.innerHTML = `
+      <!-- Peça Vinculada -->
+      <div class="feedback-detail__header-card">
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--color-brand-accent); font-weight: 700;">Peça Relacionada:</div>
+          <div style="font-size: var(--font-size-lg); font-weight: 800; color: #fff;">${s(fb.modelo || 'Peça sem título')}</div>
+          <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: 2px;">
+            REF: <strong>${s(fb.referencia || '—')}</strong> &nbsp;|&nbsp; OP: <strong>${s(fb.op || '—')}</strong>
+          </div>
+        </div>
+        ${fb.fichaId ? `
+        <button class="btn btn--secondary btn--sm" id="btn-open-linked-ficha">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Abrir Ficha Técnica
+        </button>
+        ` : ''}
+      </div>
+
+      <!-- Grid de Metadados -->
+      <div class="feedback-detail__meta-grid">
+        <div class="feedback-detail__meta-item">
+          <span class="feedback-detail__meta-label">Parceiro / Oficina:</span>
+          <span class="feedback-detail__meta-value">${s(fb.parceiro || '—')}</span>
+        </div>
+        <div class="feedback-detail__meta-item">
+          <span class="feedback-detail__meta-label">Setor / Etapa:</span>
+          <span class="feedback-detail__meta-value">${s(fb.setor || '—')}</span>
+        </div>
+        <div class="feedback-detail__meta-item">
+          <span class="feedback-detail__meta-label">Tipo de Ocorrência:</span>
+          <span class="feedback-detail__meta-value">${s(fb.tipo || '—')}</span>
+        </div>
+        <div class="feedback-detail__meta-item">
+          <span class="feedback-detail__meta-label">Data de Recebimento:</span>
+          <span class="feedback-detail__meta-value">${dataFormatada}</span>
+        </div>
+      </div>
+
+      <!-- Descrição do Defeito -->
+      <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
+        Descrição da Observação / Defeito:
+      </div>
+      <div class="feedback-detail__desc-box">${s(fb.descricao || 'Sem descrição')}</div>
+
+      <!-- Fotos do Defeito (se houver) -->
+      ${fotos.length > 0 ? `
+      <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-primary); margin-bottom: 8px;">
+        Fotos Anexadas pelo Parceiro (${fotos.length}):
+      </div>
+      <div class="feedback-detail__photos-grid">
+        ${fotos.map(fotoUrl => `
+          <div class="feedback-detail__photo-item" onclick="window.open('${s(fotoUrl)}', '_blank')">
+            <img src="${s(fotoUrl)}" alt="Foto do defeito">
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+
+      <!-- Painel de Gestão e Resolução Interna -->
+      <div style="background: rgba(15, 6, 9, 0.6); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); margin-top: var(--space-4);">
+        <div style="font-size: var(--font-size-sm); font-weight: 700; color: var(--color-brand-accent); margin-bottom: var(--space-3);">
+          ⚙️ Gestão Interna da Ocorrência
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-3);">
+          <label class="form-label" for="fb-detail-status">Status da Ocorrência</label>
+          <select id="fb-detail-status" class="form-input">
+            <option value="novo" ${fb.status === 'novo' ? 'selected' : ''}>● Novo / Pendente de Análise</option>
+            <option value="em_analise" ${fb.status === 'em_analise' ? 'selected' : ''}>⏳ Em Análise / Em Ajuste</option>
+            <option value="resolvido" ${fb.status === 'resolvido' ? 'selected' : ''}>✓ Resolvido / Ajustado</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-3);">
+          <label class="form-label" for="fb-detail-obs-interna">Observações Internas / Ação Tomada</label>
+          <textarea id="fb-detail-obs-interna" class="form-textarea" rows="2" placeholder="Ex: Molde corrigido pela modelista no dia 03/09. Orientado corte a conferir encaixe.">${s(fb.obsInterna || '')}</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4);">
+          <button class="btn btn--ghost" style="color: var(--color-error);" id="btn-delete-feedback">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            Excluir Registro
+          </button>
+          <button class="btn btn--primary" id="btn-save-feedback-status">
+            Salvar Alterações
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Evento para abrir a ficha técnica correspondente
+    const openFichaBtn = document.getElementById('btn-open-linked-ficha');
+    if (openFichaBtn && fb.fichaId) {
+      openFichaBtn.addEventListener('click', () => {
+        hideFeedbackModal();
+        loadFichaForEdit(fb.fichaId);
+      });
+    }
+
+    // Evento para salvar o status do feedback
+    const saveStatusBtn = document.getElementById('btn-save-feedback-status');
+    if (saveStatusBtn) {
+      saveStatusBtn.addEventListener('click', async () => {
+        const newStatus = document.getElementById('fb-detail-status').value;
+        const obsInterna = document.getElementById('fb-detail-obs-interna').value;
+
+        saveStatusBtn.disabled = true;
+        saveStatusBtn.classList.add('loading');
+
+        try {
+          await API.updateFeedbackStatus(fb.id, newStatus, obsInterna);
+          showToast('Status atualizado', 'A alteração foi gravada na planilha com sucesso.', 'success');
+          hideFeedbackModal();
+          loadFeedbacks(false);
+        } catch (err) {
+          showToast('Erro ao atualizar', err.message, 'error');
+        } finally {
+          saveStatusBtn.disabled = false;
+          saveStatusBtn.classList.remove('loading');
+        }
+      });
+    }
+
+    // Evento para excluir o feedback
+    const deleteFeedbackBtn = document.getElementById('btn-delete-feedback');
+    if (deleteFeedbackBtn) {
+      deleteFeedbackBtn.addEventListener('click', async () => {
+        if (!confirm('Deseja realmente excluir este registro de feedback permanentemente?')) return;
+
+        deleteFeedbackBtn.disabled = true;
+        try {
+          await API.deleteFeedback(fb.id);
+          showToast('Feedback excluído', 'O registro foi removido com sucesso.', 'info');
+          hideFeedbackModal();
+          loadFeedbacks(false);
+        } catch (err) {
+          showToast('Erro ao excluir', err.message, 'error');
+          deleteFeedbackBtn.disabled = false;
+        }
+      });
+    }
+
+    showFeedbackModal();
+  }
+
+  // ═══════════════ HANDLERS FICHAS ═══════════════
 
   /**
    * Handler do botão Salvar
@@ -285,10 +725,8 @@ const App = (() => {
   async function handleSave() {
     const saveBtn = document.getElementById('btn-save');
 
-    // Bloquear cliques duplicados: se já está salvando, ignorar
     if (saveBtn && saveBtn.disabled) return;
 
-    // Desabilitar botão imediatamente para impedir cliques múltiplos
     if (saveBtn) {
       saveBtn.disabled = true;
       saveBtn.classList.add('loading');
@@ -306,13 +744,8 @@ const App = (() => {
     }
 
     const data = FichaForm.collectData();
-
-    // Capturar se é update ANTES de fixar o ID no formulário
     const isUpdate = !!FichaForm.getCurrentId();
 
-    // Se é criação nova, fixar o ID gerado no formulário IMEDIATAMENTE
-    // Protege contra: se o save falhar/demorar e o usuário clicar Salvar de novo,
-    // o próximo collectData() usará o mesmo ID e será enviado como 'update'
     if (!isUpdate && data.id) {
       FichaForm.setCurrentId(data.id);
     }
@@ -326,7 +759,6 @@ const App = (() => {
       );
       Config.clearDraft();
 
-      // Se for uma criação nova, carregar a ficha salva para que o ID e QR Code fiquem ativos
       if (result.id) {
         try {
           const getResult = await API.getFicha(result.id);
@@ -338,7 +770,6 @@ const App = (() => {
         }
       }
 
-      // Atualizar lista em background
       loadFichas();
 
     } catch (error) {
@@ -356,10 +787,9 @@ const App = (() => {
    */
   function handlePrint() {
     try {
-      console.log('[App] handlePrint iniciado');
       const fichaId = FichaForm.getCurrentId();
       if (!fichaId) {
-        if (confirm('A ficha técnica não foi salva no banco de dados. O QR Code único de consulta não estará ativo na impressão. Deseja imprimir mesmo assim?')) {
+        if (confirm('A ficha técnica não foi salva no banco de dados. Os QR Codes de consulta não estarão ativos na impressão. Deseja imprimir mesmo assim?')) {
           PrintModule.print();
         }
       } else {
@@ -371,10 +801,8 @@ const App = (() => {
     }
   }
 
-
-
   /**
-   * Handler da busca
+   * Handler da busca de fichas
    */
   async function handleSearch() {
     const input = document.getElementById('search-input');
@@ -387,7 +815,6 @@ const App = (() => {
       return;
     }
 
-    // Busca local primeiro (performance)
     const localResults = fichasCache.filter(ficha => {
       const searchStr = [
         ficha.modelo, ficha.referencia, ficha.op,
@@ -398,7 +825,6 @@ const App = (() => {
 
     renderFichasList(localResults);
 
-    // Se poucas resultados locais, buscar no backend
     if (localResults.length === 0 && Config.isConfigured()) {
       try {
         const result = await API.searchFichas(query);
@@ -437,7 +863,6 @@ const App = (() => {
       testBtn.addEventListener('click', handleTestConnection);
     }
 
-    // Preencher campos se já configurado
     const endpointInput = document.getElementById('config-endpoint');
     const tokenInput = document.getElementById('config-token');
     const publicUrlInput = document.getElementById('config-public-url');
@@ -477,6 +902,7 @@ const App = (() => {
       showToast('Configuração salva', 'Configurações salvas com sucesso.', 'success');
       hideConfigModal();
       loadFichas();
+      loadFeedbacks(false);
     } catch (error) {
       showToast('Erro na configuração', error.message, 'error');
     }
@@ -486,7 +912,6 @@ const App = (() => {
     const testBtn = document.getElementById('btn-test-connection');
     if (testBtn) testBtn.classList.add('loading');
 
-    // Salvar temporariamente
     const endpointInput = document.getElementById('config-endpoint');
     const tokenInput = document.getElementById('config-token');
     const publicUrlInput = document.getElementById('config-public-url');
@@ -518,7 +943,7 @@ const App = (() => {
    * @param {string} title
    * @param {string} message
    * @param {'success'|'error'|'warning'|'info'} type
-   * @param {number} duration - Duração em ms (default 4000)
+   * @param {number} duration
    */
   function showToast(title, message = '', type = 'info', duration = 4000) {
     const container = document.getElementById('toast-container');
@@ -544,12 +969,8 @@ const App = (() => {
       </button>
     `;
 
-    // Close handler
     toast.querySelector('.toast__close').addEventListener('click', () => removeToast(toast));
-
     container.appendChild(toast);
-
-    // Auto remove
     setTimeout(() => removeToast(toast), duration);
   }
 
@@ -562,6 +983,7 @@ const App = (() => {
   // ═══════════════ PUBLIC API ═══════════════
 
   function newFicha() {
+    switchTab('fichas');
     FichaForm.clearForm();
     switchView('form');
   }
@@ -569,10 +991,12 @@ const App = (() => {
   return {
     VERSION: APP_VERSION,
     init,
+    switchTab,
     switchView,
     newFicha,
     showToast,
-    loadFichas
+    loadFichas,
+    loadFeedbacks
   };
 })();
 

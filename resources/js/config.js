@@ -122,6 +122,21 @@ const Config = (() => {
   }
 
   /**
+   * Retorna a URL pública base de feedback
+   * @returns {string}
+   */
+  function getPublicFeedbackUrl() {
+    let baseUrl = getPublicUrl();
+    if (baseUrl.endsWith('fotos.html')) {
+      return baseUrl.replace(/fotos\.html$/, 'feedback.html');
+    }
+    if (baseUrl.endsWith('index.html')) {
+      return baseUrl.replace(/index\.html$/, 'feedback.html');
+    }
+    return baseUrl.replace(/\/$/, '') + '/feedback.html';
+  }
+
+  /**
    * Verifica se a configuração está completa
    * @returns {boolean}
    */
@@ -191,6 +206,7 @@ const Config = (() => {
     getToken,
     setPublicUrl,
     getPublicUrl,
+    getPublicFeedbackUrl,
     isConfigured,
     clear,
     saveDraft,

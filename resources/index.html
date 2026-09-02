@@ -37,6 +37,19 @@
         </div>
       </div>
 
+      <!-- Abas de Navegação -->
+      <nav class="app-header__nav">
+        <button class="nav-tab active" id="tab-fichas">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Fichas Técnicas
+        </button>
+        <button class="nav-tab" id="tab-feedbacks">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Feedbacks & Qualidade
+          <span id="feedbacks-badge" class="nav-tab__badge" style="display:none;">0</span>
+        </button>
+      </nav>
+
       <div class="app-header__actions">
         <button class="btn btn--primary" id="btn-new-ficha" data-tooltip="Nova Ficha Técnica">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -82,6 +95,49 @@
             </div>
             <div class="empty-state__title">Nenhuma ficha cadastrada</div>
             <div class="empty-state__desc">Configure o endpoint nas Configurações e clique em "Nova Ficha" para começar.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ VIEW: FEEDBACKS / OCORRÊNCIAS ══════════ -->
+      <div id="view-feedbacks" class="view-container">
+        <div class="toolbar">
+          <div class="toolbar__group">
+            <h1 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary);">
+              Feedbacks de Produção
+              <span id="feedbacks-count" class="section-title__badge" style="vertical-align: middle;">0</span>
+            </h1>
+          </div>
+          <div class="toolbar__group">
+            <div class="search-bar">
+              <svg class="search-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="feedback-search-input" class="search-bar__input" placeholder="Buscar por modelo, ref, parceiro ou setor...">
+            </div>
+            <button class="btn btn--ghost btn--icon" id="btn-refresh-feedbacks" data-tooltip="Atualizar feedbacks">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros Rápidos por Status -->
+        <div class="filter-bar">
+          <button class="filter-chip active" data-feedback-filter="todos">Todos</button>
+          <button class="filter-chip" data-feedback-filter="novo">Novos / Pendentes</button>
+          <button class="filter-chip" data-feedback-filter="em_analise">Em Análise</button>
+          <button class="filter-chip" data-feedback-filter="resolvido">Resolvidos</button>
+        </div>
+
+        <div id="feedbacks-list-container">
+          <div class="empty-state">
+            <div class="empty-state__icon">
+              <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div class="empty-state__title">Nenhum feedback recebido</div>
+            <div class="empty-state__desc">Quando facções ou parceiros escanearem o QR Code de Feedback da peça, os relatos aparecerão aqui.</div>
           </div>
         </div>
       </div>
@@ -392,12 +448,12 @@
           </div>
         </div>
 
-        <!-- ═══ SEÇÃO F: QR CODE AUTOMÁTICO ═══ -->
+        <!-- ═══ SEÇÃO F: QR CODES AUTOMÁTICOS ═══ -->
         <div class="collapsible open" data-section="qrcodes">
           <div class="collapsible__header" onclick="this.parentElement.classList.toggle('open')">
             <div class="collapsible__title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3h-3M14 20h3M20 20v-3"/></svg>
-              F. QR Code das Fotos (Consulta Externa)
+              F. QR Codes da Folha (Fotos & Feedback de Parceiros)
             </div>
             <svg class="collapsible__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -408,32 +464,64 @@
                 <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-text-muted); margin-bottom: var(--space-3);">
                   <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3h-3M14 20h3M20 20v-3"/>
                 </svg>
-                <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); text-align: center; max-width: 400px;">
-                  O <strong>QR Code exclusivo de fotos</strong> desta peça será gerado automaticamente ao <strong>salvar a ficha</strong>. Quem escanear verá apenas as fotos da peça (sem acesso aos dados internos da ficha técnica).
+                <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); text-align: center; max-width: 480px;">
+                  Os <strong>QR Codes exclusivos</strong> (Galeria de Fotos e Envio de Feedback de Parceiros) serão gerados automaticamente ao <strong>salvar a ficha</strong>. Quem escanear não terá acesso aos dados internos da ficha técnica.
                 </p>
               </div>
-              <!-- Estado: Salva (QR gerado) -->
-              <div id="qr-auto-generated" class="qr-auto-display" style="display: none;">
-                <div class="qr-auto-display__code">
-                  <div id="qr-auto-preview" class="qr-preview" style="width: 120px; height: 120px; border-radius: var(--radius-md);"></div>
-                </div>
-                <div class="qr-auto-display__info">
-                  <div style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-brand-accent); margin-bottom: var(--space-2);">
-                    ✓ QR Code das Fotos gerado com sucesso
+
+              <!-- Estado: Salva (2 QRs gerados) -->
+              <div id="qr-auto-generated" class="qr-dual-grid" style="display: none;">
+                
+                <!-- Card 1: QR Fotos -->
+                <div class="qr-card">
+                  <div class="qr-card__header">
+                    <span class="qr-card__tag">📷 QR 1</span>
+                    <strong class="qr-card__title">Galeria de Fotos da Peça</strong>
                   </div>
-                  <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: var(--space-2);">
-                    Este QR Code aponta exclusivamente para a galeria de fotos da peça no GitHub Pages.
-                  </div>
-                  <div class="form-group" style="margin-top: var(--space-2);">
-                    <label class="form-label">Link das Fotos (Acesso Externo)</label>
-                    <div style="display: flex; gap: var(--space-2);">
-                      <input type="text" id="qr-auto-url" class="form-input" readonly style="font-family: var(--font-family-mono); font-size: var(--font-size-xs);">
-                      <button class="btn btn--ghost btn--icon" id="btn-copy-qr-url" data-tooltip="Copiar link">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                      </button>
+                  <div class="qr-card__body">
+                    <div id="qr-auto-preview" class="qr-preview" style="width: 100px; height: 100px; border-radius: var(--radius-md);"></div>
+                    <div class="qr-card__details">
+                      <p style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 6px;">
+                        Permite a oficinas e parceiros visualizarem as fotos da peça piloto.
+                      </p>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-size: 10px;">Link das Fotos (Acesso Externo)</label>
+                        <div style="display: flex; gap: var(--space-2);">
+                          <input type="text" id="qr-auto-url" class="form-input" readonly style="font-family: var(--font-family-mono); font-size: 10px;">
+                          <button class="btn btn--ghost btn--icon" id="btn-copy-qr-url" data-tooltip="Copiar link fotos">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- Card 2: QR Feedback -->
+                <div class="qr-card">
+                  <div class="qr-card__header">
+                    <span class="qr-card__tag qr-card__tag--feedback">💬 QR 2</span>
+                    <strong class="qr-card__title">Feedback & Defeitos de Parceiros</strong>
+                  </div>
+                  <div class="qr-card__body">
+                    <div id="qr-feedback-preview" class="qr-preview" style="width: 100px; height: 100px; border-radius: var(--radius-md);"></div>
+                    <div class="qr-card__details">
+                      <p style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 6px;">
+                        Abre o formulário mobile para facções reportarem dificuldades ou defeitos.
+                      </p>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-size: 10px;">Link de Feedback (Acesso Externo)</label>
+                        <div style="display: flex; gap: var(--space-2);">
+                          <input type="text" id="qr-feedback-url" class="form-input" readonly style="font-family: var(--font-family-mono); font-size: 10px;">
+                          <button class="btn btn--ghost btn--icon" id="btn-copy-qr-feedback-url" data-tooltip="Copiar link feedback">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -485,6 +573,26 @@
     <div id="print-area"></div>
 
 
+
+    <!-- ═══════════════ FEEDBACK DETAIL MODAL ═══════════════ -->
+    <div id="feedback-modal-overlay" class="modal-overlay">
+      <div class="modal modal--lg">
+        <div class="modal__header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 class="modal__title">💬 Detalhes da Ocorrência</h2>
+            <span class="badge" id="fb-modal-urgency-badge">Informativo</span>
+            <span class="badge" id="fb-modal-status-badge">Novo</span>
+          </div>
+          <button class="modal__close" id="feedback-modal-close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="modal__body" id="feedback-modal-body">
+          <!-- Conteúdo gerado dinamicamente pelo app.js -->
+        </div>
+      </div>
+    </div>
 
     <!-- ═══════════════ CONFIG MODAL ═══════════════ -->
     <div id="config-modal-overlay" class="modal-overlay">

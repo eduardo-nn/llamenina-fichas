@@ -115,18 +115,22 @@ const PrintModule = (() => {
               </div>
             </div>
 
-            <!-- QR Code ao lado da Identificação (Topo da folha) -->
-            ${data.qrCorteUrl ? `
-            <div class="print-id-qr">
-              <div class="print-id-qr__label">QR Fotos</div>
-              <div class="print-qr-peca-el"></div>
+            <!-- QR Codes ao lado da Identificação (Topo da folha: Fotos e Feedback) -->
+            <div class="print-id-qrs">
+              <!-- QR Fotos -->
+              <div class="print-id-qr ${data.qrCorteUrl ? '' : 'print-id-qr--empty'}">
+                <div class="print-id-qr__label">QR Fotos</div>
+                <div class="print-qr-peca-el"></div>
+                ${!data.qrCorteUrl ? '<div class="print-id-qr__sublabel">Sem fotos</div>' : ''}
+              </div>
+
+              <!-- QR Feedback -->
+              <div class="print-id-qr ${data.qrFeedbackUrl ? '' : 'print-id-qr--empty'}">
+                <div class="print-id-qr__label">QR Feedback</div>
+                <div class="print-qr-feedback-el"></div>
+                ${!data.qrFeedbackUrl ? '<div class="print-id-qr__sublabel">Defeito/Obs</div>' : ''}
+              </div>
             </div>
-            ` : `
-            <div class="print-id-qr" style="opacity: 0.3;">
-              <div class="print-id-qr__label">QR Fotos</div>
-              <div style="font-size: 5pt; text-align: center; color: #888;">Sem fotos</div>
-            </div>
-            `}
           </div>
 
           <!-- ═══ 5. FLUXO DE PRODUÇÃO (ORDEM MALEÁVEL) ═══ -->
@@ -244,7 +248,8 @@ const PrintModule = (() => {
     };
 
     const qrMap = [
-      { classSelector: '.print-qr-peca-el', url: data.qrCorteUrl }
+      { classSelector: '.print-qr-peca-el', url: data.qrCorteUrl },
+      { classSelector: '.print-qr-feedback-el', url: data.qrFeedbackUrl }
     ];
 
     qrMap.forEach(({ classSelector, url }) => {

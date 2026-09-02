@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    LLAMENINA — Fichas Técnicas — Google Apps Script (Code.gs)
-   Backend para Google Sheets com autenticação e auditoria
+   Backend para Google Sheets com autenticação, auditoria,
+   gestão de fotos no Drive e central de feedbacks de parceiros.
    
    INSTRUÇÕES:
    1. Crie uma planilha no Google Sheets
@@ -19,12 +20,14 @@
 const CONFIG = {
   SHEET_FICHAS: 'Fichas',
   SHEET_LOGS: 'Logs',
-  RATE_LIMIT_MAX: 30,         // Máx requisições por minuto
+  SHEET_FEEDBACKS: 'Feedbacks',
+  RATE_LIMIT_MAX: 40,         // Máx requisições por minuto
   RATE_LIMIT_WINDOW: 60000,   // 1 minuto em ms
   DRIVE_FOLDER_NAME: 'LLAMENINA_Fotos_Fichas',
+  DRIVE_FOLDER_FEEDBACKS_NAME: 'LLAMENINA_Fotos_Feedbacks',
 };
 
-// ═══════════════ COLUNAS DA PLANILHA ═══════════════
+// ═══════════════ COLUNAS DA PLANILHA (FICHAS) ═══════════════
 
 const COLUMNS = {
   ID: 1,
@@ -64,10 +67,32 @@ const COLUMNS = {
 
 const TOTAL_COLUMNS = 33;
 
+// ═══════════════ COLUNAS DA PLANILHA (FEEDBACKS) ═══════════════
+
+const FEEDBACK_COLUMNS = {
+  ID: 1,
+  TIMESTAMP: 2,
+  FICHA_ID: 3,
+  MODELO: 4,
+  REFERENCIA: 5,
+  OP: 6,
+  PARCEIRO: 7,
+  SETOR: 8,
+  TIPO: 9,
+  GRAVIDADE: 10,
+  DESCRICAO: 11,
+  FOTOS: 12,
+  STATUS: 13,
+  OBS_INTERNA: 14,
+  RESOLVIDO_EM: 15,
+};
+
+const TOTAL_FEEDBACK_COLUMNS = 15;
+
 // ═══════════════ HANDLERS PRINCIPAIS ═══════════════
 
 /**
- * Handler para requisições POST (Criar/Atualizar/Deletar)
+ * Handler para requisições POST (Criar/Atualizar/Deletar Fichas e Feedbacks)
  */
 function doPost(e) {
   try {
@@ -77,7 +102,6 @@ function doPost(e) {
     if (!body) {
       return jsonResponse({ error: 'Body vazio', code: 'EMPTY_BODY' });
     }
-
     
     let data;
     try {
@@ -86,26 +110,27 @@ function doPost(e) {
       return jsonResponse({ error: 'JSON inválido', code: 'INVALID_JSON' });
     }
     
-    // 3. Autenticação
+    // 2. Autenticação
     const token = data._token || '';
     if (!validateToken(token)) {
-      logAudit('AUTH_FAIL', '', 'Token inválido');
+      logAudit('AUTH_FAIL', '', 'Token inválido (POST)');
       return jsonResponse({ error: 'Token de autenticação inválido', code: 'AUTH_FAILED' });
     }
     
-    // 4. Rate limiting
+    // 3. Rate limiting
     if (!rateLimitCheck()) {
       return jsonResponse({ error: 'Limite de requisições excedido', code: 'RATE_LIMITED' });
     }
     
-    // 5. Remover campos internos
+    // 4. Remover campos internos
     delete data._token;
     delete data._timestamp;
     
-    // 6. Processar ação
+    // 5. Processar ação
     const action = sanitize(data.action);
     
     switch (action) {
+      // ── Fichas ──
       case 'create':
         return handleCreate(data.ficha);
       case 'update':
@@ -114,8 +139,17 @@ function doPost(e) {
         return handleDelete(data.id);
       case 'get':
         return handleGet(data.id);
+
+      // ── Feedbacks ──
+      case 'submitFeedback':
+        return handleSubmitFeedback(data.feedback);
+      case 'updateFeedbackStatus':
+        return handleUpdateFeedbackStatus(data.id, data.status, data.obsInterna);
+      case 'deleteFeedback':
+        return handleDeleteFeedback(data.id);
+
       default:
-        return jsonResponse({ error: 'Ação inválida', code: 'INVALID_ACTION' });
+        return jsonResponse({ error: 'Ação inválida: ' + action, code: 'INVALID_ACTION' });
     }
     
   } catch (err) {
@@ -125,7 +159,7 @@ function doPost(e) {
 }
 
 /**
- * Handler para requisições GET (Listar/Buscar/Ping)
+ * Handler para requisições GET (Listar/Buscar/Ping/Feedbacks)
  */
 function doGet(e) {
   try {
@@ -154,17 +188,26 @@ function doGet(e) {
         return handleSearch(sanitize(params.q || ''));
       case 'get':
         return handleGet(sanitize(params.id || ''));
+      case 'getFichaBasic':
+        return handleGetFichaBasic(sanitize(params.id || ''));
+
+      // ── Feedbacks ──
+      case 'listFeedbacks':
+        return handleListFeedbacks();
+      case 'getFeedbacksByFicha':
+        return handleGetFeedbacksByFicha(sanitize(params.fichaId || ''));
+
       default:
-        return jsonResponse({ error: 'Ação inválida', code: 'INVALID_ACTION' });
+        return jsonResponse({ error: 'Ação inválida: ' + action, code: 'INVALID_ACTION' });
     }
     
   } catch (err) {
     logAudit('ERROR', '', err.message);
-    return jsonResponse({ error: 'Erro interno do servidor', code: 'SERVER_ERROR' });
+    return jsonResponse({ error: 'Erro interno do servidor: ' + err.message, code: 'SERVER_ERROR' });
   }
 }
 
-// ═══════════════ OPERAÇÕES CRUD ═══════════════
+// ═══════════════ OPERAÇÕES CRUD — FICHAS ═══════════════
 
 /**
  * Cria uma nova ficha
@@ -184,15 +227,14 @@ function handleCreate(ficha) {
   const now = new Date().toISOString();
   
   // PROTEÇÃO CONTRA DUPLICAÇÃO: Se o ID já existe, redirecionar para update (upsert)
-  // Previne duplicação causada por retries automáticos, cliques duplos, etc.
-  const existingRow = findRowById(sheet, id);
+  const existingRow = findRowById(sheet, id, COLUMNS.ID);
   if (existingRow !== -1) {
     ficha.id = id;
     logAudit('CREATE_UPSERT', id, 'ID já existente, redirecionando para update: ' + sanitize(ficha.modelo || ''));
     return handleUpdate(ficha);
   }
   
-  // Salvar fotos no Google Drive (alta qualidade)
+  // Salvar fotos no Google Drive (pasta LLAMENINA_Fotos_Fichas)
   ficha = processAndUploadPhotos_(ficha, id);
   
   const row = buildRow(id, now, now, ficha);
@@ -216,7 +258,7 @@ function handleUpdate(ficha) {
   }
   
   const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
-  const rowIndex = findRowById(sheet, ficha.id);
+  const rowIndex = findRowById(sheet, ficha.id, COLUMNS.ID);
   
   if (rowIndex === -1) {
     return jsonResponse({ error: 'Ficha não encontrada', code: 'NOT_FOUND' });
@@ -225,7 +267,7 @@ function handleUpdate(ficha) {
   const now = new Date().toISOString();
   const originalCreation = sheet.getRange(rowIndex, COLUMNS.TIMESTAMP_CRIACAO).getValue();
   
-  // Salvar fotos no Google Drive (alta qualidade)
+  // Salvar fotos no Google Drive (pasta LLAMENINA_Fotos_Fichas)
   ficha = processAndUploadPhotos_(ficha, ficha.id);
   
   const row = buildRow(ficha.id, originalCreation || now, now, ficha);
@@ -249,7 +291,7 @@ function handleDelete(id) {
   }
   
   const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
-  const rowIndex = findRowById(sheet, sanitize(id));
+  const rowIndex = findRowById(sheet, sanitize(id), COLUMNS.ID);
   
   if (rowIndex === -1) {
     return jsonResponse({ error: 'Ficha não encontrada', code: 'NOT_FOUND' });
@@ -282,7 +324,6 @@ function handleList() {
   const data = sheet.getRange(2, 1, lastRow - 1, TOTAL_COLUMNS).getValues();
   const fichas = data
     .filter(row => {
-      // Ignorar linhas vazias (sem ID)
       if (!row[COLUMNS.ID - 1] || String(row[COLUMNS.ID - 1]).trim() === '') return false;
       return row[COLUMNS.ATIVO - 1] !== 'FALSE';
     })
@@ -313,7 +354,6 @@ function handleSearch(query) {
   
   const fichas = data
     .filter(row => {
-      // Ignorar linhas vazias (sem ID)
       if (!row[COLUMNS.ID - 1] || String(row[COLUMNS.ID - 1]).trim() === '') return false;
       if (row[COLUMNS.ATIVO - 1] === 'FALSE') return false;
       const searchable = [
@@ -341,7 +381,7 @@ function handleGet(id) {
   }
   
   const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
-  const rowIndex = findRowById(sheet, id);
+  const rowIndex = findRowById(sheet, id, COLUMNS.ID);
   
   if (rowIndex === -1) {
     return jsonResponse({ error: 'Ficha não encontrada', code: 'NOT_FOUND' });
@@ -355,10 +395,172 @@ function handleGet(id) {
   return jsonResponse({ ficha: ficha });
 }
 
-// ═══════════════ FUNÇÕES AUXILIARES ═══════════════
+/**
+ * Retorna apenas os dados básicos públicos da ficha para o cabeçalho de feedback
+ */
+function handleGetFichaBasic(id) {
+  if (!id) {
+    return jsonResponse({ error: 'ID obrigatório', code: 'MISSING_ID' });
+  }
+  
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
+  const rowIndex = findRowById(sheet, id, COLUMNS.ID);
+  
+  if (rowIndex === -1) {
+    return jsonResponse({ error: 'Ficha não encontrada', code: 'NOT_FOUND' });
+  }
+  
+  const row = sheet.getRange(rowIndex, 1, 1, TOTAL_COLUMNS).getValues()[0];
+  
+  return jsonResponse({
+    ficha: {
+      id: row[COLUMNS.ID - 1],
+      modelo: row[COLUMNS.MODELO - 1],
+      referencia: row[COLUMNS.REFERENCIA - 1],
+      op: row[COLUMNS.OP - 1]
+    }
+  });
+}
+
+// ═══════════════ OPERAÇÕES CRUD — FEEDBACKS ═══════════════
 
 /**
- * Constrói array da linha para a planilha
+ * Registra um novo feedback enviado pelo parceiro
+ */
+function handleSubmitFeedback(feedback) {
+  if (!feedback || typeof feedback !== 'object') {
+    return jsonResponse({ error: 'Dados de feedback inválidos', code: 'INVALID_DATA' });
+  }
+  
+  if (!feedback.descricao || !feedback.descricao.trim()) {
+    return jsonResponse({ error: 'A descrição da observação é obrigatória', code: 'MISSING_DESCRIPTION' });
+  }
+  
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FEEDBACKS);
+  const feedbackId = feedback.id || ('FB_' + Utilities.getUuid().substring(0, 10));
+  const now = new Date().toISOString();
+  
+  // Se veio foto no feedback, salva na pasta EXCLUSIVA DE FEEDBACKS no Google Drive
+  feedback = processAndUploadFeedbackPhotos_(feedback, feedbackId);
+  
+  const row = buildFeedbackRow(feedbackId, now, feedback);
+  sheet.appendRow(row);
+  
+  logAudit('FEEDBACK_SUBMIT', feedback.fichaId || '', 'Feedback recebido de ' + sanitize(feedback.parceiro || 'Parceiro'));
+  
+  return jsonResponse({
+    success: true,
+    id: feedbackId,
+    message: 'Feedback registrado com sucesso'
+  });
+}
+
+/**
+ * Lista todos os feedbacks registrados (mais recentes primeiro)
+ */
+function handleListFeedbacks() {
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FEEDBACKS);
+  const lastRow = sheet.getLastRow();
+  
+  if (lastRow <= 1) {
+    return jsonResponse({ feedbacks: [], total: 0 });
+  }
+  
+  const data = sheet.getRange(2, 1, lastRow - 1, TOTAL_FEEDBACK_COLUMNS).getValues();
+  const feedbacks = data
+    .filter(row => row[FEEDBACK_COLUMNS.ID - 1] && String(row[FEEDBACK_COLUMNS.ID - 1]).trim() !== '')
+    .map(feedbackRowToObject)
+    .reverse(); // Mais recentes no topo
+  
+  return jsonResponse({ feedbacks: feedbacks, total: feedbacks.length });
+}
+
+/**
+ * Lista feedbacks associados a uma ficha específica
+ */
+function handleGetFeedbacksByFicha(fichaId) {
+  if (!fichaId) {
+    return jsonResponse({ feedbacks: [], total: 0 });
+  }
+  
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FEEDBACKS);
+  const lastRow = sheet.getLastRow();
+  
+  if (lastRow <= 1) {
+    return jsonResponse({ feedbacks: [], total: 0 });
+  }
+  
+  const data = sheet.getRange(2, 1, lastRow - 1, TOTAL_FEEDBACK_COLUMNS).getValues();
+  const feedbacks = data
+    .filter(row => row[FEEDBACK_COLUMNS.FICHA_ID - 1] === fichaId)
+    .map(feedbackRowToObject)
+    .reverse();
+  
+  return jsonResponse({ feedbacks: feedbacks, total: feedbacks.length });
+}
+
+/**
+ * Atualiza o status e anotações internas de um feedback
+ */
+function handleUpdateFeedbackStatus(feedbackId, newStatus, obsInterna) {
+  if (!feedbackId) {
+    return jsonResponse({ error: 'ID do feedback obrigatório', code: 'MISSING_ID' });
+  }
+  
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FEEDBACKS);
+  const rowIndex = findRowById(sheet, feedbackId, FEEDBACK_COLUMNS.ID);
+  
+  if (rowIndex === -1) {
+    return jsonResponse({ error: 'Feedback não encontrado', code: 'NOT_FOUND' });
+  }
+  
+  const s = sanitize(newStatus || 'em_analise');
+  sheet.getRange(rowIndex, FEEDBACK_COLUMNS.STATUS).setValue(s);
+  
+  if (obsInterna !== undefined) {
+    sheet.getRange(rowIndex, FEEDBACK_COLUMNS.OBS_INTERNA).setValue(sanitize(obsInterna));
+  }
+  
+  if (s === 'resolvido') {
+    sheet.getRange(rowIndex, FEEDBACK_COLUMNS.RESOLVIDO_EM).setValue(new Date().toISOString());
+  }
+  
+  logAudit('FEEDBACK_UPDATE', feedbackId, 'Status alterado para: ' + s);
+  
+  return jsonResponse({
+    success: true,
+    message: 'Status do feedback atualizado com sucesso'
+  });
+}
+
+/**
+ * Exclui um registro de feedback
+ */
+function handleDeleteFeedback(feedbackId) {
+  if (!feedbackId) {
+    return jsonResponse({ error: 'ID obrigatório', code: 'MISSING_ID' });
+  }
+  
+  const sheet = getOrCreateSheet(CONFIG.SHEET_FEEDBACKS);
+  const rowIndex = findRowById(sheet, feedbackId, FEEDBACK_COLUMNS.ID);
+  
+  if (rowIndex === -1) {
+    return jsonResponse({ error: 'Feedback não encontrado', code: 'NOT_FOUND' });
+  }
+  
+  sheet.deleteRow(rowIndex);
+  logAudit('FEEDBACK_DELETE', feedbackId, 'Feedback excluído');
+  
+  return jsonResponse({
+    success: true,
+    message: 'Feedback excluído com sucesso'
+  });
+}
+
+// ═══════════════ FUNÇÕES AUXILIARES — FICHAS ═══════════════
+
+/**
+ * Constrói array da linha para a aba Fichas
  */
 function buildRow(id, createdAt, updatedAt, ficha) {
   const s = sanitize;
@@ -400,7 +602,7 @@ function buildRow(id, createdAt, updatedAt, ficha) {
 }
 
 /**
- * Converte uma linha da planilha em objeto JSON
+ * Converte uma linha da aba Fichas em objeto JSON
  */
 function rowToObject(row) {
   return {
@@ -440,6 +642,55 @@ function rowToObject(row) {
   };
 }
 
+// ═══════════════ FUNÇÕES AUXILIARES — FEEDBACKS ═══════════════
+
+/**
+ * Constrói array da linha para a aba Feedbacks
+ */
+function buildFeedbackRow(id, timestamp, fb) {
+  const s = sanitize;
+  return [
+    id,
+    timestamp,
+    s(fb.fichaId || ''),
+    s(fb.modelo || ''),
+    s(fb.referencia || ''),
+    s(fb.op || ''),
+    s(fb.parceiro || 'Anônimo'),
+    s(fb.setor || 'Geral'),
+    s(fb.tipo || 'Observação'),
+    s(fb.gravidade || 'Informativo'),
+    s(fb.descricao || ''),
+    fb.fotos || '',
+    s(fb.status || 'novo'),
+    s(fb.obsInterna || ''),
+    s(fb.resolvidoEm || '')
+  ];
+}
+
+/**
+ * Converte uma linha da aba Feedbacks em objeto JSON
+ */
+function feedbackRowToObject(row) {
+  return {
+    id: row[FEEDBACK_COLUMNS.ID - 1],
+    timestamp: row[FEEDBACK_COLUMNS.TIMESTAMP - 1],
+    fichaId: row[FEEDBACK_COLUMNS.FICHA_ID - 1],
+    modelo: row[FEEDBACK_COLUMNS.MODELO - 1],
+    referencia: row[FEEDBACK_COLUMNS.REFERENCIA - 1],
+    op: row[FEEDBACK_COLUMNS.OP - 1],
+    parceiro: row[FEEDBACK_COLUMNS.PARCEIRO - 1],
+    setor: row[FEEDBACK_COLUMNS.SETOR - 1],
+    tipo: row[FEEDBACK_COLUMNS.TIPO - 1],
+    gravidade: row[FEEDBACK_COLUMNS.GRAVIDADE - 1],
+    descricao: row[FEEDBACK_COLUMNS.DESCRICAO - 1],
+    fotos: safeJsonParse(row[FEEDBACK_COLUMNS.FOTOS - 1]),
+    status: row[FEEDBACK_COLUMNS.STATUS - 1] || 'novo',
+    obsInterna: row[FEEDBACK_COLUMNS.OBS_INTERNA - 1] || '',
+    resolvidoEm: row[FEEDBACK_COLUMNS.RESOLVIDO_EM - 1] || ''
+  };
+}
+
 /**
  * Parse JSON seguro
  */
@@ -452,14 +703,13 @@ function safeJsonParse(str) {
 }
 
 /**
- * Encontra o índice da linha pelo ID
- * @returns {number} Índice da linha (1-based) ou -1
+ * Encontra o índice da linha pelo ID em uma coluna específica
  */
-function findRowById(sheet, id) {
+function findRowById(sheet, id, colIndex) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return -1;
   
-  const ids = sheet.getRange(2, COLUMNS.ID, lastRow - 1, 1).getValues();
+  const ids = sheet.getRange(2, colIndex, lastRow - 1, 1).getValues();
   for (let i = 0; i < ids.length; i++) {
     if (ids[i][0] === id) return i + 2;
   }
@@ -477,7 +727,6 @@ function getOrCreateSheet(name) {
     sheet = ss.insertSheet(name);
     
     if (name === CONFIG.SHEET_FICHAS) {
-      // Criar cabeçalho
       const headers = [
         'ID', 'Criado Em', 'Atualizado Em', 'Modelo', 'Referência', 'OP',
         'Modelista', 'Pilotista', 'Tecido', 'Composição', 'Cor Linha',
@@ -487,6 +736,18 @@ function getOrCreateSheet(name) {
         'Obs Costura', 'Combinações Cores (JSON)', 'QR Corte URL',
         'QR Anexos URL', 'QR Feedback URL', 'Status', 'Responsável',
         'Data Aprovação', 'Ativo', 'Cores Tecido'
+      ];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+    
+    if (name === CONFIG.SHEET_FEEDBACKS) {
+      const headers = [
+        'ID', 'Data/Hora', 'ID Ficha', 'Modelo', 'Referência', 'OP',
+        'Parceiro / Oficina', 'Setor / Etapa', 'Tipo Ocorrência',
+        'Gravidade', 'Descrição', 'Fotos (JSON/URLs)', 'Status',
+        'Obs Interna / Resolução', 'Resolvido Em'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
@@ -516,7 +777,6 @@ function validateToken(token) {
   const validToken = props.getProperty('API_TOKEN');
   
   if (!validToken) {
-    // Se token não configurado, log de aviso
     Logger.log('AVISO: API_TOKEN não configurado nas Script Properties!');
     return false;
   }
@@ -568,54 +828,69 @@ function logAudit(action, fichaId, details) {
   }
 }
 
-// ═══════════════ GOOGLE DRIVE — FOTOS ═══════════════
+// ═══════════════ GOOGLE DRIVE — FOTOS SEPARADAS ═══════════════
 
 /**
- * Processa fotos base64 do payload e faz upload para o Google Drive.
- * Retorna o objeto ficha com campo 'foto' substituído por JSON de URLs do Drive.
- * Mantém retrocompatibilidade: se as fotos já forem URLs (não base64), não reenvia.
+ * Processa fotos da FICHA TÉCNICA e salva na pasta exclusiva: LLAMENINA_Fotos_Fichas
  */
 function processAndUploadPhotos_(ficha, fichaId) {
   if (!ficha.foto) return ficha;
+  const uploaded = uploadBase64PhotosList_(ficha.foto, fichaId, CONFIG.DRIVE_FOLDER_NAME, 'foto');
+  ficha.foto = JSON.stringify(uploaded);
+  return ficha;
+}
 
+/**
+ * Processa fotos de FEEDBACK e salva na pasta exclusiva: LLAMENINA_Fotos_Feedbacks
+ */
+function processAndUploadFeedbackPhotos_(feedback, feedbackId) {
+  if (!feedback.fotos) return feedback;
+  const uploaded = uploadBase64PhotosList_(feedback.fotos, feedbackId, CONFIG.DRIVE_FOLDER_FEEDBACKS_NAME, 'defeito');
+  feedback.fotos = JSON.stringify(uploaded);
+  return feedback;
+}
+
+/**
+ * Faz upload de uma lista de fotos base64 para uma pasta específica do Google Drive
+ */
+function uploadBase64PhotosList_(photosRaw, idPrefix, folderName, fileTag) {
   let fotos = [];
   try {
-    fotos = typeof ficha.foto === 'string' ? JSON.parse(ficha.foto) : ficha.foto;
+    fotos = typeof photosRaw === 'string' ? JSON.parse(photosRaw) : photosRaw;
   } catch (e) {
-    // Se não for JSON válido, pode ser uma única string base64
-    if (typeof ficha.foto === 'string' && ficha.foto.startsWith('data:')) {
-      fotos = [ficha.foto];
+    if (typeof photosRaw === 'string' && photosRaw.startsWith('data:')) {
+      fotos = [photosRaw];
     } else {
-      return ficha;
+      return [];
     }
   }
 
-  if (!Array.isArray(fotos) || fotos.length === 0) return ficha;
+  if (!Array.isArray(fotos) || fotos.length === 0) return [];
 
-  const folder = getOrCreateDriveFolder_();
+  const folder = getOrCreateDriveFolder_(folderName);
   const uploadedUrls = [];
 
   fotos.forEach(function(fotoItem, index) {
-    // Se já for uma URL do Drive (não base64), manter como está
     if (typeof fotoItem === 'string' && !fotoItem.startsWith('data:')) {
       uploadedUrls.push(fotoItem);
       return;
     }
 
     try {
-      // Extrair tipo MIME e dados base64
       var matches = fotoItem.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
       if (!matches) {
-        uploadedUrls.push(fotoItem); // Fallback: manter original
+        uploadedUrls.push(fotoItem);
         return;
       }
 
       var mimeType = matches[1];
       var base64Data = matches[2];
-      var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType,
-        fichaId + '_foto_' + (index + 1) + '.' + (mimeType === 'image/png' ? 'png' : 'jpg'));
+      var blob = Utilities.newBlob(
+        Utilities.base64Decode(base64Data),
+        mimeType,
+        idPrefix + '_' + fileTag + '_' + (index + 1) + '.' + (mimeType === 'image/png' ? 'png' : 'jpg')
+      );
 
-      // Verificar se já existe arquivo com mesmo nome e substituir
       var fileName = blob.getName();
       var existingFiles = folder.getFilesByName(fileName);
       while (existingFiles.hasNext()) {
@@ -625,81 +900,44 @@ function processAndUploadPhotos_(ficha, fichaId) {
       var file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-      // Gerar URL direta de visualização da imagem
       var fileId = file.getId();
       var directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
       uploadedUrls.push(directUrl);
     } catch (err) {
-      Logger.log('Erro ao salvar foto ' + (index + 1) + ': ' + err.message);
-      uploadedUrls.push(fotoItem); // Fallback: manter base64 se der erro
+      Logger.log('Erro ao salvar foto ' + (index + 1) + ' na pasta ' + folderName + ': ' + err.message);
+      uploadedUrls.push(fotoItem);
     }
   });
 
-  // Substituir campo foto com array de URLs
-  ficha.foto = JSON.stringify(uploadedUrls);
-  return ficha;
+  return uploadedUrls;
 }
 
 /**
- * Obtém ou cria a pasta no Google Drive para armazenar fotos das fichas
+ * Obtém ou cria uma pasta no Google Drive pelo nome
  */
-function getOrCreateDriveFolder_() {
-  var folderName = CONFIG.DRIVE_FOLDER_NAME;
-  var folders = DriveApp.getFoldersByName(folderName);
+function getOrCreateDriveFolder_(folderName) {
+  var targetName = folderName || CONFIG.DRIVE_FOLDER_NAME;
+  var folders = DriveApp.getFoldersByName(targetName);
 
   if (folders.hasNext()) {
     return folders.next();
   }
 
-  var folder = DriveApp.createFolder(folderName);
+  var folder = DriveApp.createFolder(targetName);
   folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return folder;
 }
 
 /**
- * EXECUTAR ESTA FUNÇÃO UMA VEZ NO EDITOR PARA AUTORIZAR O GOOGLE DRIVE:
+ * EXECUTAR ESTA FUNÇÃO UMA VEZ NO EDITOR PARA AUTORIZAR AS PASTAS DO GOOGLE DRIVE:
  * 1. Selecione "autorizarPermissoesDrive" no menu suspenso acima.
  * 2. Clique em "Executar".
- * 3. Uma janela vai pedir permissão de acesso ao Drive e à Planilha. Aceite (Avançado > Permitir).
+ * 3. Aceite as permissões na janela do Google.
  */
 function autorizarPermissoesDrive() {
-  const folder = getOrCreateDriveFolder_();
-  Logger.log('Permissão do Google Drive OK! Pasta pronta: ' + folder.getName() + ' (ID: ' + folder.getId() + ')');
-}
-
-/**
- * Função utilitária opcional:
- * Executa uma varredura nas fichas existentes da planilha e migra fotos antigas em base64 para o Google Drive.
- * (Pode ser executada manualmente pelo botão "Executar" no editor do Apps Script se desejar).
- */
-function migrarFotosAntigasParaDrive() {
-  const sheet = getOrCreateSheet(CONFIG.SHEET_FICHAS);
-  const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) {
-    Logger.log('Nenhuma ficha para migrar.');
-    return;
-  }
-
-  const rows = sheet.getRange(2, 1, lastRow - 1, TOTAL_COLUMNS).getValues();
-  let migradas = 0;
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const id = row[COLUMNS.ID - 1];
-    const fotoRaw = row[COLUMNS.FOTO - 1];
-
-    if (fotoRaw && typeof fotoRaw === 'string' && fotoRaw.includes('data:image')) {
-      const fichaFake = { foto: fotoRaw };
-      const fichaProcessada = processAndUploadPhotos_(fichaFake, id);
-      
-      // Atualiza apenas a coluna FOTO daquela linha na planilha
-      sheet.getRange(i + 2, COLUMNS.FOTO).setValue(fichaProcessada.foto);
-      migradas++;
-      Logger.log('Ficha ' + id + ' migrada para o Drive.');
-    }
-  }
-
-  Logger.log('Migração concluída: ' + migradas + ' fichas migradas.');
+  const folderFichas = getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME);
+  const folderFeedbacks = getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_FEEDBACKS_NAME);
+  Logger.log('Google Drive Autorizado! Pasta Fichas: ' + folderFichas.getName() + ' | Pasta Feedbacks: ' + folderFeedbacks.getName());
 }
 
 // ═══════════════ RESPOSTA ═══════════════

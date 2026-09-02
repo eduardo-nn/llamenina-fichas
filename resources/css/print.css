@@ -192,10 +192,10 @@
     color: #5c0920; /* Texto bordô */
   }
 
-  /* ── 7. Topo: Bloco de Identificação + QR Code Lado a Lado ── */
+  /* ── 7. Topo: Bloco de Identificação + 2 QR Codes (Fotos e Feedback) ── */
   .print-id-wrapper {
     display: flex;
-    gap: 2.5mm;
+    gap: 2mm;
     align-items: stretch;
     margin-bottom: 1mm;
   }
@@ -205,35 +205,52 @@
     margin-bottom: 0;
   }
 
+  .print-id-qrs {
+    display: flex;
+    gap: 1.5mm;
+    align-items: stretch;
+  }
+
   .print-id-qr {
-    width: 24mm;
-    min-width: 24mm;
-    max-width: 24mm;
+    width: 20.5mm;
+    min-width: 20.5mm;
+    max-width: 20.5mm;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border: 0.6pt solid #bbb;
-    border-radius: 1.5mm;
+    border-radius: 1.2mm;
     background: #fafafa;
-    padding: 1mm;
+    padding: 0.8mm 0.5mm;
     box-sizing: border-box;
   }
 
+  .print-id-qr--empty {
+    opacity: 0.35;
+  }
+
   .print-id-qr__label {
-    font-size: 5.5pt;
+    font-size: 5pt;
     font-weight: 800;
     color: #222;
-    margin-bottom: 0.8mm;
+    margin-bottom: 0.5mm;
     text-transform: uppercase;
-    letter-spacing: 0.3pt;
+    letter-spacing: 0.2pt;
     text-align: center;
+    white-space: nowrap;
+  }
+
+  .print-id-qr__sublabel {
+    font-size: 4.5pt;
+    text-align: center;
+    color: #888;
   }
 
   .print-id-qr canvas,
   .print-id-qr img {
-    width: 19mm !important;
-    height: 19mm !important;
+    width: 16.5mm !important;
+    height: 16.5mm !important;
     display: block;
     image-rendering: pixelated;
   }

@@ -7,6 +7,8 @@ neutralinojs.log
 scratch/
 dist/release-pkg/
 dist/LLA-FICHA-Windows/
+.tmp/
+*/.tmp/
 
 # Node
 node_modules/

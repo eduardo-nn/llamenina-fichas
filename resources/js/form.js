@@ -61,6 +61,20 @@ const FichaForm = (() => {
   }
 
   /**
+   * Retorna a URL pública de feedback para o QR Code de uma ficha técnica.
+   * @param {string} fichaId
+   * @returns {string}
+   */
+  function getFichaPublicFeedbackQRUrl(fichaId) {
+    if (!fichaId) return '';
+    let baseUrl = Config.getPublicFeedbackUrl() || 'https://eduardo-nn.github.io/llamenina-fichas/resources/feedback.html';
+    if (baseUrl.includes('127.0.0.1') || baseUrl.includes('localhost') || baseUrl.startsWith('file:')) {
+      baseUrl = 'https://eduardo-nn.github.io/llamenina-fichas/resources/feedback.html';
+    }
+    return baseUrl + '?id=' + encodeURIComponent(fichaId);
+  }
+
+  /**
    * Inicializa o módulo de formulário
    */
   function init() {
@@ -112,9 +126,10 @@ const FichaForm = (() => {
       else if (e.includes('fase final') || e.includes('final')) data.faseFinal = step.valor || '';
     });
 
-    // Gerar SEMPRE a URL do QR Code apontando exclusivamente para a página pública de FOTOS
+    // Gerar URLs públicas dos QR Codes (Fotos e Feedback)
     if (data.id) {
       data.qrCorteUrl = getFichaPublicQRUrl(data.id);
+      data.qrFeedbackUrl = getFichaPublicFeedbackQRUrl(data.id);
     }
 
     // Status de aprovação
@@ -582,7 +597,7 @@ const FichaForm = (() => {
   }
 
   /**
-   * Configura eventos do QR Code automático
+   * Configura eventos dos QR Codes automáticos
    */
   function setupQRPreview() {
     const copyBtn = document.getElementById('btn-copy-qr-url');
@@ -591,7 +606,19 @@ const FichaForm = (() => {
         const urlInput = document.getElementById('qr-auto-url');
         if (urlInput && urlInput.value) {
           navigator.clipboard.writeText(urlInput.value)
-            .then(() => App.showToast('Link copiado', 'URL copiada para a área de transferência', 'success'))
+            .then(() => App.showToast('Link copiado', 'URL das fotos copiada', 'success'))
+            .catch(() => App.showToast('Erro ao copiar', 'Falha ao copiar link', 'error'));
+        }
+      });
+    }
+
+    const copyFeedbackBtn = document.getElementById('btn-copy-qr-feedback-url');
+    if (copyFeedbackBtn) {
+      copyFeedbackBtn.addEventListener('click', () => {
+        const urlInput = document.getElementById('qr-feedback-url');
+        if (urlInput && urlInput.value) {
+          navigator.clipboard.writeText(urlInput.value)
+            .then(() => App.showToast('Link copiado', 'URL de feedback copiada', 'success'))
             .catch(() => App.showToast('Erro ao copiar', 'Falha ao copiar link', 'error'));
         }
       });
@@ -599,47 +626,70 @@ const FichaForm = (() => {
   }
 
   /**
-   * Atualiza o QR code automático da peça
+   * Atualiza os QR codes automáticos da peça (Fotos e Feedback)
    */
   function updateAllQRPreviews() {
     const pendingDiv = document.getElementById('qr-auto-pending');
     const generatedDiv = document.getElementById('qr-auto-generated');
     const previewDiv = document.getElementById('qr-auto-preview');
     const urlInput = document.getElementById('qr-auto-url');
+    const previewFeedbackDiv = document.getElementById('qr-feedback-preview');
+    const urlFeedbackInput = document.getElementById('qr-feedback-url');
 
-    if (!pendingDiv || !generatedDiv || !previewDiv || !urlInput) return;
+    if (!pendingDiv || !generatedDiv) return;
 
-    previewDiv.innerHTML = '';
+    if (previewDiv) previewDiv.innerHTML = '';
+    if (previewFeedbackDiv) previewFeedbackDiv.innerHTML = '';
 
     if (currentFichaId) {
-      // Gerar a URL pública única apontando exclusivamente para fotos.html
-      const uniqueUrl = getFichaPublicQRUrl(currentFichaId);
-      urlInput.value = uniqueUrl;
+      // 1. URL Fotos
+      const uniqueFotosUrl = getFichaPublicQRUrl(currentFichaId);
+      if (urlInput) urlInput.value = uniqueFotosUrl;
+
+      // 2. URL Feedback
+      const uniqueFeedbackUrl = getFichaPublicFeedbackQRUrl(currentFichaId);
+      if (urlFeedbackInput) urlFeedbackInput.value = uniqueFeedbackUrl;
 
       if (typeof QRCode === 'undefined') {
-        previewDiv.innerHTML = '<span class="qr-preview--empty" style="color: var(--color-error); font-size: var(--font-size-xs);">Biblioteca QRCode não carregada</span>';
+        if (previewDiv) previewDiv.innerHTML = '<span class="qr-preview--empty" style="color: var(--color-error); font-size: var(--font-size-xs);">QRCode indisponível</span>';
+        if (previewFeedbackDiv) previewFeedbackDiv.innerHTML = '<span class="qr-preview--empty" style="color: var(--color-error); font-size: var(--font-size-xs);">QRCode indisponível</span>';
         pendingDiv.style.display = 'none';
-        generatedDiv.style.display = 'flex';
+        generatedDiv.style.display = 'grid';
         return;
       }
 
       try {
-        new QRCode(previewDiv, {
-          text: uniqueUrl,
-          width: 120,
-          height: 120,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
-        });
+        if (previewDiv) {
+          new QRCode(previewDiv, {
+            text: uniqueFotosUrl,
+            width: 100,
+            height: 100,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+
+        if (previewFeedbackDiv) {
+          new QRCode(previewFeedbackDiv, {
+            text: uniqueFeedbackUrl,
+            width: 100,
+            height: 100,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+
         pendingDiv.style.display = 'none';
-        generatedDiv.style.display = 'flex';
+        generatedDiv.style.display = 'grid';
       } catch (e) {
-        console.error('Erro ao gerar QR Code automático:', e);
-        previewDiv.innerHTML = '<span class="qr-preview--empty">Erro</span>';
+        console.error('Erro ao gerar QR Codes:', e);
+        if (previewDiv) previewDiv.innerHTML = '<span class="qr-preview--empty">Erro</span>';
       }
     } else {
-      urlInput.value = '';
+      if (urlInput) urlInput.value = '';
+      if (urlFeedbackInput) urlFeedbackInput.value = '';
       pendingDiv.style.display = 'flex';
       generatedDiv.style.display = 'none';
     }
@@ -712,8 +762,10 @@ const FichaForm = (() => {
     const pendingDiv = document.getElementById('qr-auto-pending');
     const generatedDiv = document.getElementById('qr-auto-generated');
     const urlInput = document.getElementById('qr-auto-url');
-    if (pendingDiv && generatedDiv && urlInput) {
-      urlInput.value = '';
+    const urlFeedbackInput = document.getElementById('qr-feedback-url');
+    if (pendingDiv && generatedDiv) {
+      if (urlInput) urlInput.value = '';
+      if (urlFeedbackInput) urlFeedbackInput.value = '';
       pendingDiv.style.display = 'flex';
       generatedDiv.style.display = 'none';
     }
